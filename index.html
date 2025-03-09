@@ -1,0 +1,3127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Diário de Classe</title>
+    <!-- Scripts do jsPDF e autotable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- Fontes e ícones -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Capacitor -->
+    <script src="https://unpkg.com/@capacitor/core@latest/dist/capacitor.js"></script>
+    <script src="https://unpkg.com/@capacitor/filesystem@latest/dist/filesystem.js"></script>
+    <!-- CSS inline -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            background-color: #f5f5f5;
+            color: #000;
+            display: flex;
+            overflow-x: auto;
+            transition: all 0.3s ease;
+        }
+
+        /* Classe base para botões */
+        .btn {
+            margin: 5px;
+            padding: 8px 15px;
+            background: linear-gradient(#8B4513, #A0522D);
+            color: #FFD700;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            font-family: 'Roboto', sans-serif;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background: #CD853F;
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Barra Superior */
+        .app-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            background: #FFFACD;
+            border-bottom: 1px solid #D2691E;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 10px;
+            z-index: 1000;
+        }
+
+        .app-bar h1 {
+            font-size: 20px;
+            color: #8B4513;
+            margin: 0;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #8B4513;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+
+        .menu-btn:hover {
+            color: #A0522D;
+        }
+
+        #capa {
+            position: relative;
+            min-height: 100%;
+            padding-bottom: 80px; /* Espaço para o footer */
+            box-sizing: border-box;
+            border: 1px solid var(--theme-border); /* Borda única para toda a capa */
+        }
+
+        #capa-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            color: var(--theme-text);
+            line-height: 1.4;
+            padding: 10px 0;
+            background: var(--theme-bg-light); /* Mantém o fundo claro */
+            border: none; /* Remove a borda do footer para evitar conflitos */
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            #capa {
+                padding-bottom: 100px; /* Mais espaço em telas menores */
+            }
+            
+            #capa-footer {
+                font-size: 10px;
+                padding: 8px 0;
+            }
+        }
+
+        .tema-wrapper {
+            display: flex;
+            align-items: center;
+            position: relative;
+            margin-right: 20px;
+            width: 30px;
+            height: 30px;
+        }
+
+        .tema-icon {
+            font-size: 18px;
+            color: var(--theme-text);
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .tema-select {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            background: var(--theme-primary);
+            color: transparent;
+            border: 1px solid var(--theme-border);
+            border-radius: 5px;
+            cursor: pointer;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            opacity: 0;
+            transition: opacity 0.2s ease, width 0.2s ease;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .tema-select:hover,
+        .tema-select:focus {
+            opacity: 1;
+            width: 120px;
+            background: transparent;
+            color: var(--theme-text);
+        }
+
+        .tema-select option {
+            background: var(--theme-bg-light);
+            color: var(--theme-text);
+        }
+
+        .tema-select:not(:focus) {
+            color: transparent !important;
+        }
+
+        .tema-select:focus {
+            outline: none;
+        }
+
+        @media (max-width: 768px) {
+            .tema-wrapper {
+                margin-right: 20px;
+            }
+
+            .tema-select {
+                right: 0;
+                left: auto;
+            }
+
+            .tema-select:hover,
+            .tema-select:focus {
+                width: 100px;
+                max-width: calc(100vw - 40px);
+                right: 0;
+                z-index: 1001;
+            }
+        }        
+
+        /* Sidebar Retrátil */
+        .sidebar {
+            width: 200px;
+            background: #FFFACD;
+            border-right: 1px solid #D2691E;
+            padding: 10px 0;
+            height: 100vh;
+            position: fixed;
+            top: 50px;
+            left: -200px;
+            transition: left 0.3s ease;
+            z-index: 900;
+        }
+
+        .sidebar.active {
+            left: 0;
+        }
+
+        .sidebar button {
+            display: flex;
+            align-items: center;
+            width: 90%;
+            height: 50px;
+            margin: 10px auto;
+            padding: 0 10px;
+            transform: scale(1);
+        }
+
+        .sidebar button:focus {
+            outline: none;
+            background: #A0522D;
+        }
+
+        .sidebar button i {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+
+        .sidebar button span {
+            display: block;
+        }
+
+        /* Conteúdo */
+        .content {
+            margin-left: 0;
+            margin-top: 50px;
+            padding: 20px;
+            flex-grow: 1;
+            overflow-x: auto;
+        }
+
+        /* Capa */
+        #capa {
+            border: 1px solid #D2691E;
+            padding: 40px;
+            background: #FFFACD;
+            height: calc(100vh - 80px);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Cards */
+        .card {
+            background: #FFE4C4;
+            border: 1px solid #D2691E;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: #FFDAB9;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .card .icon {
+            font-size: 24px;
+            color: #A0522D;
+            margin-right: 10px;
+        }
+
+        .card span {
+            color: #8B4513;
+            font-size: 16px;
+        }
+
+        .card .actions button {
+            padding: 5px 10px;
+            margin-left: 5px;
+        }
+
+        /* Inputs */
+        input,
+        select,
+        textarea {
+            margin: 5px;
+            padding: 5px;
+            width: 20%;
+            font-family: inherit;
+            display: block;
+            border: 1px solid #D2691E;
+            border-radius: 5px;
+            background: #FFFACD;
+            color: #8B4513;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus,
+        button:focus {
+            border-color: #A0522D;
+            box-shadow: 0 0 5px rgba(160, 82, 45, 0.5);
+            outline: 2px solid #A0522D;
+            outline-offset: 2px;
+        }
+
+        textarea {
+            width: 80%;
+            height: 100px;
+            resize: vertical;
+        }
+
+        /* Spinner */
+        .spinner {
+            border: 3px solid #FFD700;
+            border-top: 3px solid #8B4513;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin: 0 5px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Tabelas */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: #FFFACD;
+        }
+
+        th,
+        td {
+            border: 1px solid #D2691E;
+            padding: 5px;
+            text-align: center;
+            color: #8B4513;
+        }
+
+        th {
+            background: #A0522D;
+            color: #FFD700;
+        }
+
+        tr:nth-child(odd) {
+            background: #FFFACD;
+        }
+
+        tr:nth-child(even) {
+            background: #FFE4C4;
+        }
+
+        table td:first-child,
+        table th:first-child {
+            min-width: 150px;
+        }
+
+        table tr:hover {
+            background: #FFDAB9;
+        }
+
+        /* Outros elementos */
+        .disciplina,
+        .turma,
+        .aluno {
+            padding: 10px;
+            background: #FFE4C4;
+            margin: 5px;
+            display: inline-block;
+            width: 90%;
+        }
+
+        .disciplina:hover,
+        .turma:hover,
+        .aluno:hover {
+            background: #FFDAB9;
+        }
+
+        #config-inicial,
+        #tela-disciplinas,
+        #tela-alunos,
+        #tela-turmas-independentes,
+        #tela-gerenciar-aulas,
+        #tela-combinacao,
+        #tela-frequencia,
+        #tela-notas,
+        #tela-conteudo,
+        #tela-config-bimestres,
+        #tela-atividades,
+        #tela-recuperacao {
+            display: none;
+        }
+
+        .label {
+            font-weight: bold;
+            text-transform: uppercase;
+            margin: 5px 0;
+            color: #8B4513;
+        }
+
+        #gerenciamento-conteudo {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            width: 100%;
+        }
+
+        .combinacao-btn {
+            padding: 5px 10px;
+            background: #A0522D;
+            border: 1px solid #D2691E;
+            margin: 5px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            color: #FFD700;
+            border-radius: 8px;
+        }
+
+        .combinacao-btn:hover {
+            background: #CD853F;
+        }
+
+        #tela-combinacao {
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 40px);
+        }
+
+        #combinacao-header {
+            position: relative;
+            padding: 10px 10px 10px 20px;
+            background: #FFFACD;
+            border-bottom: 1px solid #D2691E;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #combinacao-main {
+            display: flex;
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        #combinacao-resumos {
+            flex: 7;
+            margin-right: 20px;
+            overflow-x: auto;
+        }
+
+        #acoes-flotantes {
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        .btn-flotante {
+            padding: 8px 15px;
+            font-size: 16px;
+            border-radius: 8px;
+        }
+
+        .menu-acoes {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 5px;
+            background: #FFFACD;
+            border: 1px solid #D2691E;
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .menu-acoes.active {
+            display: flex;
+        }
+
+        .menu-acoes button {
+            font-size: 18px;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .aba {
+            display: inline-block;
+            padding: 10px;
+            background: #A0522D;
+            border: 1px solid #D2691E;
+            cursor: pointer;
+            margin-right: 5px;
+            color: #FFD700;
+            border-radius: 5px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 16px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .aba:hover {
+            background: #CD853F;
+            transform: scale(1.05);
+        }
+
+        .aba:active {
+            transform: scale(0.98);
+        }
+
+        .aba.ativa {
+            background: #FFD700;
+            border-bottom: none;
+            color: #8B4513;
+        }
+
+        #resumo-conteudo {
+            padding: 10px;
+            border: 1px solid #D2691E;
+            background: #FFFACD;
+            min-height: 200px;
+            overflow-x: auto;
+        }
+
+        .registros-select {
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .registros-select select {
+            width: 200px;
+            padding: 5px;
+        }
+
+        .registros-select button {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .registros-select button:hover {
+            background: #d32f2f;
+        }
+
+        /* Ajuste para Tela de Notas */
+        .nota-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .nota-group input[type="number"] {
+            width: 35px;
+            padding: 5px;
+            margin: 0 2px;
+            font-size: 12px;
+            -webkit-appearance: none;
+            -moz-appearance: textfield;
+        }
+
+        .nota-group input[type="number"]::-webkit-inner-spin-button,
+        .nota-group input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .nota-group .media-display {
+            display: inline-block;
+            width: 35px;
+            padding: 2px 5px;
+            font-size: 12px;
+            border: 1px solid #D2691E;
+            background: #f0f0f0;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        .nota-group input:disabled {
+            background: #e0e0e0;
+            cursor: not-allowed;
+        }
+
+        /* Resultados */
+        .resultado-status.aprovado {
+            color: #008000;
+        }
+
+        .resultado-status.reprovado {
+            color: #FF0000;
+        }
+
+        /* Ajustes para Desktop */
+        @media (min-width: 769px) {
+            #tela-alunos table td:first-child,
+            #tela-frequencia table td:first-child,
+            #tela-atividades table td:first-child,
+            #tela-recuperacao table td:first-child,
+            #resumo-conteudo table td:first-child {
+                text-align: left;
+            }
+
+            #tela-notas table th:not(:first-child),
+            #tela-notas table td:not(:first-child) {
+                width: 120px;
+                padding: 5px;
+            }
+
+            #tela-notas table th:first-child,
+            #tela-notas table td:first-child {
+                width: auto;
+                text-align: left;
+            }
+
+            .nota-group {
+                justify-content: flex-start;
+            }
+        }
+
+        /* Definição de variáveis por tema */
+        :root {
+            /* Padrão */
+            --padrao-bg: #FFFFE0;
+            --padrao-bg-light: #FFFACD;
+            --padrao-bg-card: #FFE4C4;
+            --padrao-bg-hover: #FFDAB9;
+            --padrao-primary: #A0522D;
+            --padrao-primary-dark: #8B4513;
+            --padrao-text: #8B4513;
+            --padrao-text-light: #FFD700;
+            --padrao-border: #D2691E;
+
+            /* Escuro */
+            --escuro-bg: #333;
+            --escuro-bg-light: #444;
+            --escuro-bg-card: #555;
+            --escuro-bg-hover: #666;
+            --escuro-primary: #555;
+            --escuro-primary-dark: #666;
+            --escuro-text: #fff;
+            --escuro-text-light: #fff;
+            --escuro-border: #666;
+
+            /* Azul Suave */
+            --azul-suave-bg: #E6F0FA;
+            --azul-suave-bg-light: #B3D4FC;
+            --azul-suave-bg-card: #DCEBFF;
+            --azul-suave-bg-hover: #A3C4F3;
+            --azul-suave-primary: #005BAC;
+            --azul-suave-primary-dark: #003087;
+            --azul-suave-text: #003087;
+            --azul-suave-text-light: #fff;
+            --azul-suave-border: #005BAC;
+
+            /* Verde Natural */
+            --verde-natural-bg: #E8F5E9;
+            --verde-natural-bg-light: #C8E6C9;
+            --verde-natural-bg-card: #DCEDC8;
+            --verde-natural-bg-hover: #B2DFDB;
+            --verde-natural-primary: #2E7D32;
+            --verde-natural-primary-dark: #1B5E20;
+            --verde-natural-text: #1B5E20;
+            --verde-natural-text-light: #fff;
+            --verde-natural-border: #2E7D32;
+
+            /* Roxo Moderno */
+            --roxo-moderno-bg: #F3E5F5;
+            --roxo-moderno-bg-light: #E1BEE7;
+            --roxo-moderno-bg-card: #F8E1FF;
+            --roxo-moderno-bg-hover: #D1C4E9;
+            --roxo-moderno-primary: #6A1B9A;
+            --roxo-moderno-primary-dark: #4A148C;
+            --roxo-moderno-text: #4A148C;
+            --roxo-moderno-text-light: #fff;
+            --roxo-moderno-border: #6A1B9A;
+
+            /* Laranja Vibrante */
+            --laranja-vibrante-bg: #FFF3E0;
+            --laranja-vibrante-bg-light: #FFCCBC;
+            --laranja-vibrante-bg-card: #FFE0B2;
+            --laranja-vibrante-bg-hover: #FFAB91;
+            --laranja-vibrante-primary: #EF6C00;
+            --laranja-vibrante-primary-dark: #E65100;
+            --laranja-vibrante-text: #E65100;
+            --laranja-vibrante-text-light: #fff;
+            --laranja-vibrante-border: #EF6C00;
+
+            /* Cinza Elegante */
+            --cinza-elegante-bg: #ECEFF1;
+            --cinza-elegante-bg-light: #CFD8DC;
+            --cinza-elegante-bg-card: #E0E0E0;
+            --cinza-elegante-bg-hover: #B0BEC5;
+            --cinza-elegante-primary: #546E7A;
+            --cinza-elegante-primary-dark: #37474F;
+            --cinza-elegante-text: #37474F;
+            --cinza-elegante-text-light: #fff;
+            --cinza-elegante-border: #546E7A;
+
+            /* Rosa Delicado */
+            --rosa-delicado-bg: #FCE4EC;
+            --rosa-delicado-bg-light: #F8BBD0;
+            --rosa-delicado-bg-card: #FFCDD2;
+            --rosa-delicado-bg-hover: #F48FB1;
+            --rosa-delicado-primary: #C2185B;
+            --rosa-delicado-primary-dark: #880E4F;
+            --rosa-delicado-text: #880E4F;
+            --rosa-delicado-text-light: #fff;
+            --rosa-delicado-border: #C2185B;
+
+            /* Amarelo Sol */
+            --amarelo-sol-bg: #FFFDE7;
+            --amarelo-sol-bg-light: #FFECB3;
+            --amarelo-sol-bg-card: #FFF9C4;
+            --amarelo-sol-bg-hover: #FFE082;
+            --amarelo-sol-primary: #FFB300;
+            --amarelo-sol-primary-dark: #F57F17;
+            --amarelo-sol-text: #F57F17;
+            --amarelo-sol-text-light: #fff;
+            --amarelo-sol-border: #FFB300;
+        }
+
+        /* Estilos genéricos aplicados a todos os temas */
+        body[class^="theme-"] {
+            background-color: var(--theme-bg);
+            color: var(--theme-text);
+        }
+
+        body[class^="theme-"] .app-bar {
+            background: var(--theme-bg-light);
+            border-bottom: 1px solid var(--theme-border);
+        }
+
+        body[class^="theme-"] .app-bar h1,
+        body[class^="theme-"] .menu-btn {
+            color: var(--theme-text);
+        }
+
+        body[class^="theme-"] .tema-icon {
+            color: var(--theme-text);
+        }
+
+        body[class^="theme-"] .tema-select {
+            background: var(--theme-primary);
+            border-color: var(--theme-border);
+        }
+
+        body[class^="theme-"] .tema-select:hover,
+        body[class^="theme-"] .tema-select:focus {
+            background: var(--theme-primary-dark);
+            color: var(--theme-text-light);
+        }
+
+        body[class^="theme-"] .sidebar {
+            background: var(--theme-bg-light);
+            border-right: 1px solid var(--theme-border);
+        }
+
+        body[class^="theme-"] .sidebar button {
+            background: var(--theme-primary);
+            color: var(--theme-text-light);
+        }
+
+        body[class^="theme-"] .sidebar button:hover {
+            background: var(--theme-primary-dark);
+        }
+
+        body[class^="theme-"] #capa,
+        body[class^="theme-"] .content,
+        body[class^="theme-"] #combinacao-header,
+        body[class^="theme-"] #resumo-conteudo {
+            background: var(--theme-bg-light);
+            border-color: var(--theme-border);
+        }
+
+        body[class^="theme-"] .card {
+            background: var(--theme-bg-card);
+            border-color: var(--theme-border);
+        }
+        body[class^="theme-"] .card:hover {
+            background: var(--theme-bg-hover);
+        }
+
+        body[class^="theme-"] .card span {
+            color: var(--theme-text);
+        }
+
+        body[class^="theme-"] .card .actions button {
+            background: var(--theme-primary);
+            color: var(--theme-text-light);
+        }
+
+        body[class^="theme-"] .card .actions button:hover {
+            background: var(--theme-primary-dark);
+        }
+
+        body[class^="theme-"] button.btn {
+            background: var(--theme-primary);
+            color: var(--theme-text-light);
+            border-color: var(--theme-border);
+        }
+
+        body[class^="theme-"] button.btn:hover {
+            background: var(--theme-primary-dark);
+        }
+
+        body[class^="theme-"] .combinacao-btn {
+            background: var(--theme-primary);
+            color: var(--theme-text-light);
+            border-color: var(--theme-border);
+        }
+
+        body[class^="theme-"] .combinacao-btn:hover {
+            background: var(--theme-primary-dark);
+        }
+
+        body[class^="theme-"] .aba {
+            background: var(--theme-primary);
+            color: var(--theme-text-light);
+            border-color: var(--theme-border);
+        }
+
+        body[class^="theme-"] .aba:hover {
+            background: var(--theme-primary-dark);
+        }
+
+        body[class^="theme-"] .aba.ativa {
+            background: #fff;
+            border-color: var(--theme-primary);
+            color: var(--theme-primary);
+        }
+
+        body[class^="theme-"] tr:nth-child(odd) {
+            background: var(--theme-bg-light);
+        }
+
+        body[class^="theme-"] tr:nth-child(even) {
+            background: var(--theme-bg-card);
+        }
+
+        body[class^="theme-"] table {
+            background: var(--theme-bg-light);
+        }
+
+        body[class^="theme-"] table tr:hover {
+            background: var(--theme-bg-hover);
+        }
+
+        body[class^="theme-"] th {
+            background: var(--theme-primary);
+            color: var(--theme-text-light);
+        }
+
+        body[class^="theme-"] td {
+            color: var(--theme-text);
+        }
+
+        body[class^="theme-"] input,
+        body[class^="theme-"] select,
+        body[class^="theme-"] textarea {
+            background: var(--theme-bg-card);
+            color: var(--theme-text);
+            border-color: var(--theme-border);
+        }
+
+        body[class^="theme-"] .nota-group .media-display {
+            background: var(--theme-bg);
+            border-color: var(--theme-border);
+        }
+
+        body[class^="theme-"] .label {
+            color: var(--theme-text);
+        }
+
+        body[class^="theme-"] #combinacao-header {
+            background: var(--theme-bg-light);
+            border-color: var(--theme-border);
+        }
+
+        body[class^="theme-"] .menu-acoes {
+            background: var(--theme-bg-light);
+            border-color: var(--theme-border);
+        }
+
+        /* Aplicação dos temas */
+        body.theme-padrao {
+            --theme-bg: var(--padrao-bg);
+            --theme-bg-light: var(--padrao-bg-light);
+            --theme-bg-card: var(--padrao-bg-card);
+            --theme-bg-hover: var(--padrao-bg-hover);
+            --theme-primary: var(--padrao-primary);
+            --theme-primary-dark: var(--padrao-primary-dark);
+            --theme-text: var(--padrao-text);
+            --theme-text-light: var(--padrao-text-light);
+            --theme-border: var(--padrao-border);
+        }
+
+        body.theme-escuro {
+            --theme-bg: var(--escuro-bg);
+            --theme-bg-light: var(--escuro-bg-light);
+            --theme-bg-card: var(--escuro-bg-card);
+            --theme-bg-hover: var(--escuro-bg-hover);
+            --theme-primary: var(--escuro-primary);
+            --theme-primary-dark: var(--escuro-primary-dark);
+            --theme-text: var(--escuro-text);
+            --theme-text-light: var(--escuro-text-light);
+            --theme-border: var(--escuro-border);
+        }
+
+        body.theme-azul-suave {
+            --theme-bg: var(--azul-suave-bg);
+            --theme-bg-light: var(--azul-suave-bg-light);
+            --theme-bg-card: var(--azul-suave-bg-card);
+            --theme-bg-hover: var(--azul-suave-bg-hover);
+            --theme-primary: var(--azul-suave-primary);
+            --theme-primary-dark: var(--azul-suave-primary-dark);
+            --theme-text: var(--azul-suave-text);
+            --theme-text-light: var(--azul-suave-text-light);
+            --theme-border: var(--azul-suave-border);
+        }
+
+        body.theme-verde-natural {
+            --theme-bg: var(--verde-natural-bg);
+            --theme-bg-light: var(--verde-natural-bg-light);
+            --theme-bg-card: var(--verde-natural-bg-card);
+            --theme-bg-hover: var(--verde-natural-bg-hover);
+            --theme-primary: var(--verde-natural-primary);
+            --theme-primary-dark: var(--verde-natural-primary-dark);
+            --theme-text: var(--verde-natural-text);
+            --theme-text-light: var(--verde-natural-text-light);
+            --theme-border: var(--verde-natural-border);
+        }
+
+        body.theme-roxo-moderno {
+            --theme-bg: var(--roxo-moderno-bg);
+            --theme-bg-light: var(--roxo-moderno-bg-light);
+            --theme-bg-card: var(--roxo-moderno-bg-card);
+            --theme-bg-hover: var(--roxo-moderno-bg-hover);
+            --theme-primary: var(--roxo-moderno-primary);
+            --theme-primary-dark: var(--roxo-moderno-primary-dark);
+            --theme-text: var(--roxo-moderno-text);
+            --theme-text-light: var(--roxo-moderno-text-light);
+            --theme-border: var(--roxo-moderno-border);
+        }
+
+        body.theme-laranja-vibrante {
+            --theme-bg: var(--laranja-vibrante-bg);
+            --theme-bg-light: var(--laranja-vibrante-bg-light);
+            --theme-bg-card: var(--laranja-vibrante-bg-card);
+            --theme-bg-hover: var(--laranja-vibrante-bg-hover);
+            --theme-primary: var(--laranja-vibrante-primary);
+            --theme-primary-dark: var(--laranja-vibrante-primary-dark);
+            --theme-text: var(--laranja-vibrante-text);
+            --theme-text-light: var(--laranja-vibrante-text-light);
+            --theme-border: var(--laranja-vibrante-border);
+        }
+
+        body.theme-cinza-elegante {
+            --theme-bg: var(--cinza-elegante-bg);
+            --theme-bg-light: var(--cinza-elegante-bg-light);
+            --theme-bg-card: var(--cinza-elegante-bg-card);
+            --theme-bg-hover: var(--cinza-elegante-bg-hover);
+            --theme-primary: var(--cinza-elegante-primary);
+            --theme-primary-dark: var(--cinza-elegante-primary-dark);
+            --theme-text: var(--cinza-elegante-text);
+            --theme-text-light: var(--cinza-elegante-text-light);
+            --theme-border: var(--cinza-elegante-border);
+        }
+
+        body.theme-rosa-delicado {
+            --theme-bg: var(--rosa-delicado-bg);
+            --theme-bg-light: var(--rosa-delicado-bg-light);
+            --theme-bg-card: var(--rosa-delicado-bg-card);
+            --theme-bg-hover: var(--rosa-delicado-bg-hover);
+            --theme-primary: var(--rosa-delicado-primary);
+            --theme-primary-dark: var(--rosa-delicado-primary-dark);
+            --theme-text: var(--rosa-delicado-text);
+            --theme-text-light: var(--rosa-delicado-text-light);
+            --theme-border: var(--rosa-delicado-border);
+        }
+
+        body.theme-amarelo-sol {
+            --theme-bg: var(--amarelo-sol-bg);
+            --theme-bg-light: var(--amarelo-sol-bg-light);
+            --theme-bg-card: var(--amarelo-sol-bg-card);
+            --theme-bg-hover: var(--amarelo-sol-bg-hover);
+            --theme-primary: var(--amarelo-sol-primary);
+            --theme-primary-dark: var(--amarelo-sol-primary-dark);
+            --theme-text: var(--amarelo-sol-text);
+            --theme-text-light: var(--amarelo-sol-text-light);
+            --theme-border: var(--amarelo-sol-border);
+        }
+
+        body[class^="theme-"] .content,
+        body[class^="theme-"] #capa,
+        body[class^="theme-"] #resumo-conteudo,
+        body[class^="theme-"] #combinacao-header {
+            background: var(--theme-bg-light) !important;
+            color: var(--theme-text) !important;
+            border-color: var(--theme-border) !important;
+        }
+
+        thead {
+            position: sticky;
+            top: 0;
+            background: var(--theme-primary);
+            z-index: 2;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: 100vh;
+                top: 50px;
+                left: -100%;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .content {
+                margin-top: 50px;
+                padding: 10px;
+            }
+
+            input,
+            select,
+            textarea {
+                width: 90%;
+            }
+
+            .card {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            #combinacao-main {
+                flex-direction: column;
+            }
+
+            #combinacao-resumos {
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+
+            #combinacao-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            #acoes-flotantes {
+                margin: 10px 0 0 0;
+            }
+
+            .menu-acoes {
+                right: auto;
+                left: 0;
+            }
+        }
+
+        .capa-botoes {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px; /* Espaço entre os botões */
+            align-items: center; /* Centraliza os botões horizontalmente */
+        }
+
+        .btn {
+            width: 200px; /* Largura fixa para consistência */
+            padding: 8px 15px;
+            text-align: center;
+        }
+
+        .btn i {
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        @media (max-width: 768px) {
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+                width: 100%;
+            }
+
+            th,
+            td {
+                min-width: 80px;
+            }
+
+            /* Tabela de Frequência */
+            #frequencia-lista table th:not(:first-child),
+            #frequencia-lista table td:not(:first-child) {
+                min-width: 30px;
+                padding: 4px;
+                font-size: 12px;
+            }
+
+            /* Tabela de Atividades */
+            #atividades-lista table th:not(:first-child),
+            #atividades-lista table td:not(:first-child) {
+                min-width: 30px;
+                padding: 4px;
+                font-size: 12px;
+            }
+
+            /* Mantém a coluna de nomes legível */
+            #frequencia-lista table th:first-child,
+            #frequencia-lista table td:first-child,
+            #atividades-lista table th:first-child,
+            #atividades-lista table td:first-child {
+                min-width: 120px;
+            }
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch; /* Melhora rolagem no Android */
+        }
+
+        #notas-lista table {
+            min-width: 600px; /* Garante que a tabela seja larga o suficiente */
+        }
+
+        .nota-group {
+            display: flex;
+            flex-wrap: nowrap; /* Evita quebra de linha */
+            align-items: center;
+            gap: 5px;
+            padding: 2px;
+        }
+
+        @media (max-width: 768px) {
+            #notas-lista table th:not(:first-child),
+            #notas-lista table td:not(:first-child) {
+                min-width: 100px; /* Ajusta largura mínima para notas */
+                padding: 2px;
+            }
+            #notas-lista table th:first-child,
+            #notas-lista table td:first-child {
+                min-width: 120px; /* Mantém nomes legíveis */
+                position: sticky;
+                left: 0;
+                background: #FFFACD; /* Cor de fundo para o tema padrão */
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Barra Superior -->
+    <div class="app-bar">
+        <button id="menu-toggle" class="menu-btn"><i class="fas fa-bars"></i></button>
+        <h1>Diário de Classe</h1>
+        <div class="tema-wrapper">
+            <span class="tema-icon"><i class="fas fa-paint-brush"></i></span>
+            <select id="seletor-tema" class="tema-select" title="Escolher Tema"></select>
+        </div>
+    </div>
+
+    <!-- Barra Lateral Retrátil -->
+    <div class="sidebar" id="sidebar">
+        <button tabindex="0" aria-label="Ir para a página inicial" onclick="Diario.telas.carregarCapa()">
+            <i class="fas fa-home"></i> <span>Home</span>
+        </button>        
+        <button tabindex="0" aria-label="Gerenciar disciplinas" onclick="Diario.telas.mostrarDisciplinas()">
+            <i class="fas fa-book"></i> <span>Disciplinas</span>
+        </button>
+        <button tabindex="0" aria-label="Gerenciar turmas" onclick="Diario.telas.mostrarTurmasIndependentes()">
+            <i class="fas fa-users"></i> <span>Turmas</span>
+        </button>
+        <button tabindex="0" aria-label="Gerenciar aulas" onclick="Diario.telas.mostrarGerenciarAulas()">
+            <i class="fas fa-chalkboard-teacher"></i> <span>Gerenciar Aulas</span>
+        </button>
+    </div>
+
+    <!-- Conteúdo -->
+    <div class="content">
+        <div id="config-inicial">
+            <h2>Configuração Inicial</h2>
+            <div class="label">Nome da Escola</div>
+            <input id="nome-escola" placeholder="Ex.: Centro Educacional Padre Aldemir">
+            <div class="label">Curso</div>
+            <input id="curso" placeholder="Ex.: Ensino Fundamental">
+            <div class="label">Ano Letivo</div>
+            <input id="ano-letivo" placeholder="Ex.: 2025">
+            <div class="label">Professor(a)</div>
+            <input id="nome-professor" placeholder="Seu nome">
+            <button class="btn" onclick="Diario.telas.salvarConfigInicial()">Salvar</button>
+        </div>
+
+        <div id="capa">
+            <h2 id="capa-titulo"></h2>
+            <div class="label">Curso:</div>
+            <p id="capa-curso"></p>
+            <div class="label">Ano Letivo:</div>
+            <p id="capa-ano"></p>
+            <div class="label">Professor(a):</div>
+            <p id="capa-professor"></p>
+            <div class="capa-botoes">
+                <button class="btn" onclick="Diario.telas.editarConfig()"><i class="fas fa-pencil-alt"></i> Editar Configuração</button>
+                <button class="btn" onclick="Diario.telas.exportarDados()">Exportar Backup</button>
+                <button class="btn" onclick="Diario.telas.abrirImportacao()">Importar Backup</button>
+                <input type="file" id="importar-dados" accept=".json" onchange="Diario.telas.importarDados(event)" style="display: none;">
+            </div>
+            <footer id="capa-footer">
+                Desenvolvido por Grok (xAI) <br> Co-desenvolvido por <br>Leandro Ferreira de Souza
+            </footer>
+        </div>
+
+        <div id="tela-disciplinas">
+            <h2>Disciplinas</h2>
+            <div id="lista-disciplinas"></div>
+            <input id="nova-disciplina" placeholder="Nova disciplina (Enter)"
+                onkeypress="if(event.keyCode===13) Diario.telas.adicionarDisciplina()">
+            <button class="btn" id="add-disciplina-btn" onclick="Diario.telas.adicionarDisciplina()"><i
+                    class="fas fa-plus"></i> Adicionar</button>
+            <button class="btn" onclick="Diario.telas.voltarCapa()">Voltar</button>
+        </div>
+
+        <div id="tela-alunos">
+            <h2 id="nome-turma"></h2>
+            <h3>Alunos</h3>
+            <div id="lista-alunos"></div>
+            <input id="busca-aluno" placeholder="Buscar aluno por nome" style="width: 90%; margin-bottom: 10px;"
+                oninput="Diario.telas.filtrarAlunos()">
+            <input id="novo-aluno" placeholder="Novo aluno (Enter)" style="display: none;"
+                onkeypress="if(event.keyCode===13) Diario.telas.adicionarAluno()">
+            <button class="btn" id="add-aluno-btn" onclick="Diario.telas.adicionarAluno()"><i class="fas fa-plus"></i>
+                Adicionar</button>
+            <button class="btn" onclick="Diario.telas.voltarTurmas()">Voltar</button>
+        </div>
+
+        <div id="tela-turmas-independentes">
+            <h2>Turmas</h2>
+            <div id="lista-turmas-independentes"></div>
+            <input id="nova-turma-independente" placeholder="Nova turma (Enter)"
+                onkeypress="if(event.keyCode===13) Diario.telas.adicionarTurmaIndependente()">
+            <button class="btn" id="add-turma-independente-btn" onclick="Diario.telas.adicionarTurmaIndependente()"><i
+                    class="fas fa-plus"></i> Adicionar</button>
+            <button class="btn" onclick="Diario.telas.voltarCapa()">Voltar</button>
+        </div>
+
+        <div id="tela-gerenciar-aulas">
+            <h2>Gerenciar Aulas</h2>
+            <select id="disciplina-selecionada">
+                <option value="">Selecione uma disciplina</option>
+            </select>
+            <select id="turma-selecionada">
+                <option value="">Selecione uma turma</option>
+            </select>
+            <button class="btn" onclick="Diario.telas.adicionarCombinacao()"><i class="fas fa-plus"></i>
+                Adicionar</button>
+            <div id="gerenciamento-conteudo"></div>
+            <button class="btn" onclick="Diario.telas.voltarCapa()">Voltar</button>
+        </div>
+
+        <div id="tela-config-bimestres">
+            <h2>Configurar Bimestres</h2>
+            <h3 id="combinacao-config-nome"></h3>
+            <div class="label">1º Bimestre</div>
+            <input id="bimestre1-inicio" type="date">
+            <input id="bimestre1-fim" type="date">
+            <div class="label">2º Bimestre</div>
+            <input id="bimestre2-inicio" type="date">
+            <input id="bimestre2-fim" type="date">
+            <div class="label">3º Bimestre</div>
+            <input id="bimestre3-inicio" type="date">
+            <input id="bimestre3-fim" type="date">
+            <div class="label">4º Bimestre</div>
+            <input id="bimestre4-inicio" type="date">
+            <input id="bimestre4-fim" type="date">
+            <button class="btn" onclick="Diario.telas.configurarBimestres()">Salvar</button>
+            <button class="btn" onclick="Diario.telas.voltarCombinacao()">Voltar</button>
+        </div>
+
+        <div id="tela-combinacao">
+            <div id="combinacao-header">
+                <h2 id="combinacao-titulo"></h2>
+                <div id="acoes-flotantes">
+                    <button class="btn btn-flotante" id="toggle-acoes" aria-label="Abrir menu de ações">Ações</button>
+                    <div id="menu-acoes" class="menu-acoes">
+                        <button class="btn" onclick="Diario.telas.mostrarTelaFrequencia()"
+                            aria-label="Registrar frequência" title="Frequência">📊</button>
+                        <button class="btn" onclick="Diario.telas.mostrarTelaConteudo()" aria-label="Registrar conteúdo"
+                            title="Conteúdo">📅</button>
+                        <button class="btn" onclick="Diario.telas.mostrarTelaNotas()" aria-label="Registrar notas"
+                            title="Notas">📈</button>
+                        <button class="btn" onclick="Diario.telas.mostrarTelaAtividades()"
+                            aria-label="Registrar atividades" title="Atividades">✅</button>
+                        <button class="btn" onclick="Diario.telas.mostrarTelaRecuperacao()"
+                            aria-label="Registrar recuperação" title="Recuperação">🎓</button>
+                        <button class="btn" onclick="Diario.telas.mostrarConfigBimestres()"
+                            aria-label="Configurar bimestres" title="Configuração">⚙️</button>
+                    </div>
+                </div>
+            </div>
+            <div id="combinacao-main">
+                <div id="combinacao-resumos">
+                    <div id="abas">
+                        <button class="aba ativa" onclick="Diario.telas.mostrarResumo('frequencia')">Frequência</button>
+                        <button class="aba" onclick="Diario.telas.mostrarResumo('conteudo')">Conteúdo</button>
+                        <button class="aba" onclick="Diario.telas.mostrarResumo('notas')">Notas</button>
+                        <button class="aba" onclick="Diario.telas.mostrarResumo('atividades')">Atividades</button>
+                        <button class="aba" onclick="Diario.telas.mostrarResumo('resultados')">Resultados</button>
+                    </div>
+                    <div id="resumo-conteudo"></div>
+                </div>
+            </div>
+            <button class="btn" onclick="Diario.telas.voltarGerenciarAulas()">Voltar</button>
+            <div style="margin-top: 10px;">
+                <button class="btn" onclick="Diario.telas.abrirModalExportacao()">Exportar PDF</button>
+                <div id="modal-export"
+                    style="display: none; position: fixed; top: 20%; left: 20%; background: #FFFACD; padding: 20px; border: 1px solid #D2691E; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3); z-index: 1001;">
+                    <h3>Escolha o que exportar:</h3>
+                    <label><input type="checkbox" value="geral"> Geral (Notas e Faltas)</label><br>
+                    <label><input type="checkbox" value="frequencia"> Frequência</label><br>
+                    <label><input type="checkbox" value="conteudo"> Conteúdo</label><br>
+                    <label><input type="checkbox" value="notas"> Notas</label><br>
+                    <label><input type="checkbox" value="atividades"> Atividades</label><br>
+                    <label><input type="checkbox" value="resultados"> Resultados</label><br>
+                    <label><input type="checkbox" value="todos"> Completo (Todas as Abas)</label><br>
+                    <button class="btn" onclick="Diario.telas.gerarPDFModal()">Gerar</button>
+                    <button class="btn"
+                        onclick="document.getElementById('modal-export').style.display='none'">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="tela-frequencia">
+            <h2 id="frequencia-titulo"></h2>
+            <input type="date" id="frequencia-data">
+            <div id="frequencia-lista"></div>
+            <button class="btn" onclick="Diario.telas.registrarFrequencia()">Registrar</button>
+            <button class="btn" onclick="Diario.telas.voltarCombinacao()">Voltar</button>
+        </div>
+
+        <div id="tela-atividades">
+            <h2 id="atividades-titulo"></h2>
+            <input type="date" id="atividades-data">
+            <div id="atividades-lista"></div>
+            <button class="btn" onclick="Diario.telas.registrarAtividade()">Registrar</button>
+            <button class="btn" onclick="Diario.telas.voltarCombinacao()">Voltar</button>
+        </div>
+
+        <div id="tela-notas">
+            <h2 id="notas-titulo"></h2>
+            <div id="notas-lista"></div>
+            <button class="btn" onclick="Diario.telas.salvarNotas()">Salvar</button>
+            <button class="btn" onclick="Diario.telas.voltarCombinacao()">Voltar</button>
+        </div>
+
+        <div id="tela-conteudo">
+            <h2 id="conteudo-titulo"></h2>
+            <input type="date" id="conteudo-data">
+            <textarea id="conteudo-texto"></textarea>
+            <div id="conteudo-lista"></div>
+            <button class="btn" onclick="Diario.telas.registrarConteudo()">Registrar</button>
+            <button class="btn" onclick="Diario.telas.voltarCombinacao()">Voltar</button>
+        </div>
+
+        <div id="tela-recuperacao">
+            <h2 id="recuperacao-titulo"></h2>
+            <div id="recuperacao-opcoes">
+                <button class="btn" onclick="Diario.telas.mostrarRecuperacaoConjugada()">Recuperação com
+                    Paralela</button>
+                <button class="btn" onclick="Diario.telas.mostrarRecuperacaoExclusiva()">Recuperação Exclusiva</button>
+            </div>
+            <div id="recuperacao-conteudo"></div>
+            <button class="btn" onclick="Diario.telas.salvarRecuperacao()" id="btn-salvar-recuperacao"
+                style="display: none;">Salvar</button>
+            <button class="btn" onclick="Diario.telas.voltarCombinacao()">Voltar</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+        window.Filesystem = Filesystem; // Torna global pra usar no código
+        window.Directory = Directory;
+        window.Encoding = Encoding;
+    </script>
+    <script>
+        console.log("Script carregado com sucesso!");
+
+        document.addEventListener('DOMContentLoaded', () => {
+            inicializarApp();
+        });   
+
+        // Funções de armazenamento com Capacitor Filesystem
+        async function salvarDados(dados) {
+            if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                try {
+                    await window.Filesystem.writeFile({
+                        path: 'diario-data.json',
+                        data: JSON.stringify(dados, null, 2),
+                        directory: window.Directory.Documents,
+                        encoding: window.Encoding.UTF8
+                    });
+                    console.log("Dados salvos no Filesystem:", dados.tema);
+                } catch (e) {
+                    console.error('Erro ao salvar dados no Filesystem:', e);
+                }
+            } else {
+                localStorage.setItem('diario-data', JSON.stringify(dados));
+                console.log("Dados salvos no localStorage:", dados.tema);
+            }
+        }
+
+        async function carregarDados() {
+            if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+                try {
+                    const result = await window.Filesystem.readFile({
+                        path: 'diario-data.json',
+                        directory: window.Directory.Documents,
+                        encoding: window.Encoding.UTF8
+                    });
+                    const dados = JSON.parse(result.data);
+                    console.log("Dados carregados do Filesystem:", dados.tema);
+                    return dados;
+                } catch (e) {
+                    console.warn('Nenhum dado no Filesystem, usando padrão:', e);
+                    return { escola: null, disciplinas: [], turmasIndependentes: [], combinacoes: {}, combinacaoAtual: null, turmaAtual: null, ultimoEstado: null, tema: 'padrao' };
+                }
+            } else {
+                try {
+                    const data = localStorage.getItem('diario-data');
+                    const dados = data ? JSON.parse(data) : { escola: null, disciplinas: [], turmasIndependentes: [], combinacoes: {}, combinacaoAtual: null, turmaAtual: null, ultimoEstado: null, tema: 'padrao' };
+                    console.log("Dados carregados do localStorage:", dados.tema);
+                    return dados;
+                } catch (e) {
+                    console.warn('Erro ao carregar do localStorage, usando padrão:', e);
+                    return { escola: null, disciplinas: [], turmasIndependentes: [], combinacoes: {}, combinacaoAtual: null, turmaAtual: null, ultimoEstado: null, tema: 'padrao' };
+                }
+            }
+        }
+
+        const Diario = {
+            dados: null,
+
+            funcoes: {
+                debounce(func, wait) {
+                    let timeout;
+                    return function (...args) {
+                        clearTimeout(timeout);
+                        timeout = setTimeout(() => func.apply(this, args), wait);
+                    };
+                },
+
+                mostrarNotificacao(mensagem, tipo = 'sucesso') {
+                    const div = document.createElement('div');
+                    div.innerHTML = `${tipo === 'sucesso' ? '✔️' : '✖️'} ${mensagem}`;
+                    div.className = `notificacao ${tipo}`;
+                    div.style.position = 'fixed';
+                    div.style.top = '10px';
+                    div.style.right = '10px';
+                    div.style.padding = '10px 20px';
+                    div.style.color = 'white';
+                    div.style.borderRadius = '5px';
+                    div.style.zIndex = '1000';
+                    div.style.opacity = '0.9';
+                    div.style.transition = 'opacity 0.5s ease';
+                    div.style.background = tipo === 'sucesso' ? '#4CAF50' : '#f44336';
+                    document.body.appendChild(div);
+                    setTimeout(() => { div.style.opacity = '0'; setTimeout(() => div.remove(), 500); }, 3000);
+                },
+
+                esconderTelas() {
+                    ['config-inicial', 'capa', 'tela-disciplinas', 'tela-alunos', 'tela-turmas-independentes',
+                        'tela-gerenciar-aulas', 'tela-combinacao', 'tela-frequencia', 'tela-notas', 'tela-conteudo',
+                        'tela-config-bimestres', 'tela-atividades', 'tela-recuperacao']
+                        .forEach(id => document.getElementById(id).style.display = 'none');
+                },
+
+                formatarData(data, short = false) {
+                    const date = new Date(data + 'T00:00:00');
+                    return short ? `${date.getDate()}/${date.getMonth() + 1}` : date.toLocaleDateString('pt-BR');
+                },
+
+                arredondarNota(nota) {
+                    if (!nota || isNaN(nota) || nota < 0 || nota > 10) return null;
+                    const num = parseFloat(nota);
+                    const decimal = num % 1;
+                    if (decimal >= 0.75) return Math.ceil(num);
+                    if (decimal >= 0.25) return Math.floor(num) + 0.5;
+                    return Math.floor(num);
+                },
+
+                calcularMediaBimestral(notas) {
+                    const validas = notas.filter(n => n !== null && !isNaN(n)).map(Number);
+                    if (!validas.length) return "-";
+                    if (validas.length <= 2) {
+                        const media = validas.reduce((a, b) => a + b, 0) / validas.length;
+                        return Math.round(media * 2) / 2;
+                    }
+                    validas.sort((a, b) => b - a);
+                    const media = (validas[0] + validas[1]) / 2;
+                    return Math.round(media * 2) / 2;
+                },
+
+                calcularMediaGeral(bimestres) {
+                    const medias = bimestres.map(b => this.calcularMediaBimestral(b)).filter(m => m !== "-");
+                    return medias.length ? this.arredondarNota(medias.reduce((a, b) => a + parseFloat(b), 0) / medias.length) : "-";
+                },
+
+                sincronizarDados: async function () {
+                    await salvarDados(Diario.dados);
+                },
+            },
+
+            telas: {
+                notasSalvas: false,
+
+                filtrarResumo(tipo) {
+                    const busca = document.getElementById('busca-resumo').value.toLowerCase();
+                    const turmaNome = Diario.dados.combinacaoAtual.split(" - ")[1];
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === turmaNome);
+                    const alunosFiltrados = turma.alunos.filter(a => a.nome.toLowerCase().includes(busca));
+                    const conteudo = document.getElementById("resumo-conteudo");
+
+                    const construirLista = this[`construirLista${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`];
+                    conteudo.innerHTML = construirLista({ ...turma, alunos: alunosFiltrados });
+                    if (tipo === 'frequencia') conteudo.innerHTML += this.construirListaHistoricoFrequencia({ ...turma, alunos: alunosFiltrados }, 0);
+                },
+
+                carregarCapa() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("capa").style.display = "flex";
+                    const escola = Diario.dados.escola;
+                    document.getElementById("capa-titulo").textContent = escola.nomeEscola.toUpperCase();
+                    document.getElementById("capa-curso").textContent = escola.curso;
+                    document.getElementById("capa-ano").textContent = escola.anoLetivo;
+                    document.getElementById("capa-professor").textContent = escola.professor;
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                salvarConfigInicial() {
+                    const button = document.querySelector('#config-inicial button');
+                    const nomeEscola = document.getElementById("nome-escola").value.trim();
+                    const curso = document.getElementById("curso").value.trim();
+                    const anoLetivo = document.getElementById("ano-letivo").value.trim();
+                    const professor = document.getElementById("nome-professor").value.trim();
+
+                    if (!nomeEscola || !curso || !anoLetivo || !professor) {
+                        Diario.funcoes.mostrarNotificacao("Preencha todos os campos!", "erro");
+                        return;
+                    }
+
+                    button.innerHTML = '<span class="spinner"></span> Salvando...';
+                    setTimeout(async () => {
+                        Diario.dados.escola = { nomeEscola, curso, anoLetivo, professor };
+                        await salvarDados(Diario.dados);
+                        Diario.telas.carregarCapa();
+                        button.innerHTML = 'Salvar';
+                        Diario.funcoes.mostrarNotificacao("Configuração salva com sucesso!");
+                    }, 1000);
+                },
+
+                filtrarAlunos() {
+                    const busca = document.getElementById('busca-aluno').value.toLowerCase();
+                    const alunosFiltrados = Diario.dados.turmaAtual.alunos.filter(a => a.nome.toLowerCase().includes(busca));
+                    document.getElementById("lista-alunos").innerHTML = alunosFiltrados.map((a, i) => `
+                        <div class="card">
+                            <span class="icon"><i class="fas fa-user"></i></span>
+                            <span>${a.numero}. ${a.nome}</span>
+                            <div class="actions">
+                                <button class="btn" onclick="Diario.telas.editarAluno(${Diario.dados.turmaAtual.alunos.indexOf(a)})"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn" onclick="Diario.telas.removerAluno(${Diario.dados.turmaAtual.alunos.indexOf(a)})"><i class="fas fa-trash"></i> Remover</button>
+                            </div>
+                        </div>`).join('');
+                },
+
+                editarConfig() {
+                    Diario.funcoes.esconderTelas();
+                    const config = document.getElementById("config-inicial");
+                    config.style.display = "block";
+                    const escola = Diario.dados.escola;
+                    document.getElementById("nome-escola").value = escola.nomeEscola;
+                    document.getElementById("curso").value = escola.curso;
+                    document.getElementById("ano-letivo").value = escola.anoLetivo;
+                    document.getElementById("nome-professor").value = escola.professor;
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                mostrarDisciplinas() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-disciplinas").style.display = "block";
+                    this.carregarDisciplinas();
+                    document.getElementById("nova-disciplina").focus();
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                carregarDisciplinas() {
+                    document.getElementById("lista-disciplinas").innerHTML = Diario.dados.disciplinas.map((d, i) => `
+                        <div class="card">
+                            <span class="icon"><i class="fas fa-book"></i></span>
+                            <span>${d.nome}</span>
+                            <div class="actions">
+                                <button class="btn" onclick="Diario.telas.editarDisciplina(${i})"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn" onclick="Diario.telas.removerDisciplina(${i})"><i class="fas fa-trash"></i> Remover</button>
+                            </div>
+                        </div>`).join('');
+                },
+
+                adicionarDisciplina() {
+                    const nome = document.getElementById("nova-disciplina").value.trim();
+                    if (!nome || Diario.dados.disciplinas.some(d => d.nome.toLowerCase() === nome.toLowerCase())) {
+                        Diario.funcoes.mostrarNotificacao("Nome inválido ou duplicado!", "erro");
+                        return;
+                    }
+                    Diario.dados.disciplinas.push({ nome });
+                    salvarDados(Diario.dados).then(() => {
+                        document.getElementById("nova-disciplina").value = "";
+                        this.carregarDisciplinas();
+                        Diario.funcoes.mostrarNotificacao("Disciplina adicionada com sucesso!");
+                        document.getElementById("nova-disciplina").focus();
+                    });
+                },
+
+                editarDisciplina(index) {
+                    const novoNome = prompt("Novo nome da disciplina:", Diario.dados.disciplinas[index].nome);
+                    if (novoNome && !Diario.dados.disciplinas.some((d, i) => i !== index && d.nome.toLowerCase() === novoNome.toLowerCase())) {
+                        Diario.dados.disciplinas[index].nome = novoNome;
+                        salvarDados(Diario.dados).then(() => {
+                            this.carregarDisciplinas();
+                            Diario.funcoes.mostrarNotificacao("Disciplina editada com sucesso!");
+                        });
+                    } else {
+                        Diario.funcoes.mostrarNotificacao("Nome inválido ou duplicado!", "erro");
+                    }
+                },
+
+                removerDisciplina(index) {
+                    if (confirm(`Remover "${Diario.dados.disciplinas[index].nome}"?`)) {
+                        Diario.dados.disciplinas.splice(index, 1);
+                        salvarDados(Diario.dados).then(() => {
+                            this.carregarDisciplinas();
+                            Diario.funcoes.mostrarNotificacao("Disciplina removida com sucesso!");
+                        });
+                    }
+                },
+
+                mostrarTurmasIndependentes() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-turmas-independentes").style.display = "block";
+                    this.carregarTurmasIndependentes();
+                    document.getElementById("nova-turma-independente").focus();
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                carregarTurmasIndependentes() {
+                    document.getElementById("lista-turmas-independentes").innerHTML = Diario.dados.turmasIndependentes.map((t, i) => `
+                        <div class="card" onclick="Diario.telas.abrirTurmaIndependente('${t.nome}')">
+                            <span class="icon"><i class="fas fa-users"></i></span>
+                            <span>${t.nome}</span>
+                            <div class="actions">
+                                <button class="btn" onclick="event.stopPropagation(); Diario.telas.editarTurmaIndependente(${i})"><i class="fas fa-edit"></i> Editar</button>
+                                <button class="btn" onclick="event.stopPropagation(); Diario.telas.removerTurmaIndependente(${i})"><i class="fas fa-trash"></i> Remover</button>
+                            </div>
+                        </div>`).join('');
+                },
+
+                adicionarTurmaIndependente() {
+                    const nome = document.getElementById("nova-turma-independente").value.trim();
+                    if (!nome || Diario.dados.turmasIndependentes.some(t => t.nome.toLowerCase() === nome.toLowerCase())) {
+                        Diario.funcoes.mostrarNotificacao("Nome inválido ou duplicado!", "erro");
+                        return;
+                    }
+                    Diario.dados.turmasIndependentes.push({ nome, alunos: [], faltas: [] });
+                    salvarDados(Diario.dados).then(() => {
+                        document.getElementById("nova-turma-independente").value = "";
+                        this.carregarTurmasIndependentes();
+                        Diario.funcoes.mostrarNotificacao("Turma adicionada com sucesso!");
+                        document.getElementById("nova-turma-independente").focus();
+                    });
+                },
+
+                editarTurmaIndependente(index) {
+                    const nomeAntigo = Diario.dados.turmasIndependentes[index].nome;
+                    const novoNome = prompt("Novo nome da turma:", nomeAntigo);
+                    if (novoNome && !Diario.dados.turmasIndependentes.some((t, i) => i !== index && t.nome.toLowerCase() === novoNome.toLowerCase())) {
+                        Diario.dados.turmasIndependentes[index].nome = novoNome;
+                        salvarDados(Diario.dados).then(() => {
+                            this.carregarTurmasIndependentes();
+                            Diario.funcoes.mostrarNotificacao("Turma editada com sucesso!");
+                        });
+                    } else {
+                        Diario.funcoes.mostrarNotificacao("Nome inválido ou duplicado!", "erro");
+                    }
+                },
+
+                removerTurmaIndependente(index) {
+                    const turma = Diario.dados.turmasIndependentes[index];
+                    if (confirm(`Remover "${turma.nome}"?`)) {
+                        Object.keys(Diario.dados.combinacoes).forEach(combinacao => {
+                            if (combinacao.split(" - ")[1] === turma.nome) {
+                                delete Diario.dados.combinacoes[combinacao];
+                                if (Diario.dados.combinacaoAtual === combinacao) {
+                                    Diario.dados.combinacaoAtual = null;
+                                }
+                            }
+                        });
+                        Diario.dados.turmasIndependentes.splice(index, 1);
+                        salvarDados(Diario.dados).then(() => {
+                            this.carregarTurmasIndependentes();
+                            Diario.funcoes.mostrarNotificacao("Turma e combinações associadas removidas com sucesso!");
+                        });
+                    }
+                },
+
+                abrirTurmaIndependente(nome) {
+                    Diario.dados.turmaAtual = Diario.dados.turmasIndependentes.find(t => t.nome === nome);
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-alunos").style.display = "block";
+                    document.getElementById("nome-turma").textContent = `Turma: ${nome}`;
+                    this.carregarAlunos();
+                    document.getElementById("novo-aluno").style.display = "block";
+                    document.getElementById("add-aluno-btn").style.display = "block";
+                    document.getElementById("novo-aluno").focus();
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                carregarAlunos() {
+                    const lista = document.getElementById("lista-alunos");
+                    const alunos = Diario.dados.turmaAtual.alunos;
+                    let inicio = 0;
+                    const tamanhoPagina = 10;
+
+                    const renderizarPagina = () => {
+                        const fim = Math.min(inicio + tamanhoPagina, alunos.length);
+                        lista.innerHTML += alunos.slice(inicio, fim).map((a, i) => `
+                            <div class="card">
+                                <span class="icon"><i class="fas fa-user"></i></span>
+                                <span>${a.numero}. ${a.nome}</span>
+                                <div class="actions">
+                                    <button class="btn" onclick="Diario.telas.editarAluno(${i + inicio})"><i class="fas fa-edit"></i> Editar</button>
+                                    <button class="btn" onclick="Diario.telas.removerAluno(${i + inicio})"><i class="fas fa-trash"></i> Remover</button>
+                                </div>
+                            </div>`).join('');
+                        inicio = fim;
+                    };
+
+                    lista.innerHTML = '';
+                    renderizarPagina();
+
+                    const observer = new IntersectionObserver((entries) => {
+                        if (entries[0].isIntersecting && inicio < alunos.length) {
+                            renderizarPagina();
+                        }
+                    }, { rootMargin: '100px' });
+
+                    const sentinela = document.createElement('div');
+                    sentinela.id = 'sentinela-alunos';
+                    lista.appendChild(sentinela);
+                    observer.observe(sentinela);
+
+                    document.getElementById('busca-aluno').value = '';
+                },
+
+                adicionarAluno() {
+                    const nome = document.getElementById("novo-aluno").value.trim();
+                    if (!nome) {
+                        Diario.funcoes.mostrarNotificacao("Digite um nome válido para o aluno!", "erro");
+                        return;
+                    }
+                    const numero = Diario.dados.turmaAtual.alunos.length + 1;
+                    Diario.dados.turmaAtual.alunos.push({ nome, numero });
+                    salvarDados(Diario.dados).then(() => {
+                        document.getElementById("novo-aluno").value = "";
+                        this.carregarAlunos();
+                        Diario.funcoes.mostrarNotificacao("Aluno adicionado com sucesso!");
+                        document.getElementById("novo-aluno").focus();
+                    });
+                },
+
+                editarAluno(index) {
+                    const novoNome = prompt("Novo nome do aluno:", Diario.dados.turmaAtual.alunos[index].nome);
+                    if (novoNome) {
+                        Diario.dados.turmaAtual.alunos[index].nome = novoNome;
+                        salvarDados(Diario.dados).then(() => {
+                            this.carregarAlunos();
+                            Diario.funcoes.mostrarNotificacao("Aluno editado com sucesso!");
+                        });
+                    }
+                },
+
+                removerAluno(index) {
+                    if (confirm(`Remover "${Diario.dados.turmaAtual.alunos[index].nome}"?`)) {
+                        Diario.dados.turmaAtual.alunos.splice(index, 1);
+                        Diario.dados.turmaAtual.alunos.forEach((a, i) => a.numero = i + 1);
+                        salvarDados(Diario.dados).then(() => {
+                            this.carregarAlunos();
+                            Diario.funcoes.mostrarNotificacao("Aluno removido com sucesso!");
+                        });
+                    }
+                },
+
+                mostrarGerenciarAulas() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-gerenciar-aulas").style.display = "block";
+                    this.carregarDisciplinasGerenciamento();
+                    this.carregarCombinacoes();
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                carregarDisciplinasGerenciamento() {
+                    const select = document.getElementById("disciplina-selecionada");
+                    select.innerHTML = '<option value="">Selecione uma disciplina</option>' +
+                        Diario.dados.disciplinas.map(d => `<option value="${d.nome}">${d.nome}</option>`).join('');
+                    select.onchange = () => this.carregarTurmasGerenciamento();
+                    this.carregarTurmasGerenciamento();
+                },
+
+                carregarTurmasGerenciamento() {
+                    document.getElementById("turma-selecionada").innerHTML = '<option value="">Selecione uma turma</option>' +
+                        Diario.dados.turmasIndependentes.map(t => `<option value="${t.nome}">${t.nome}</option>`).join('');
+                },
+
+                adicionarCombinacao() {
+                    const disciplina = document.getElementById("disciplina-selecionada").value;
+                    const turma = document.getElementById("turma-selecionada").value;
+                    if (!disciplina || !turma) {
+                        Diario.funcoes.mostrarNotificacao("Selecione disciplina e turma!", "erro");
+                        return;
+                    }
+                    const combinacao = `${disciplina} - ${turma}`;
+                    if (Diario.dados.combinacoes[combinacao]) {
+                        Diario.funcoes.mostrarNotificacao("Combinação já existe!", "erro");
+                        return;
+                    }
+                    Diario.dados.combinacoes[combinacao] = {
+                        bimestres: [
+                            { inicio: "2025-02-01", fim: "2025-04-30" },
+                            { inicio: "2025-05-01", fim: "2025-07-31" },
+                            { inicio: "2025-08-01", fim: "2025-10-31" },
+                            { inicio: "2025-11-01", fim: "2025-12-31" }
+                        ],
+                        frequencia: [], conteudo: [], notas: [], atividades: [], recuperacao: []
+                    };
+                    salvarDados(Diario.dados).then(() => {
+                        this.carregarCombinacoes();
+                        Diario.funcoes.mostrarNotificacao("Combinação adicionada com sucesso!");
+                    });
+                },
+
+                carregarCombinacoes() {
+                    document.getElementById("gerenciamento-conteudo").innerHTML =
+                        Object.keys(Diario.dados.combinacoes).map(c => `
+                            <div class="combinacao-btn">
+                                <span onclick="Diario.telas.mostrarCombinacao('${c}')">${c}</span>
+                                <button class="btn" onclick="Diario.telas.removerCombinacao('${c}')"><i class="fas fa-trash"></i> Remover</button>
+                            </div>`).join('');
+                },
+
+                removerCombinacao(combinacao) {
+                    if (confirm(`Remover "${combinacao}"?`)) {
+                        delete Diario.dados.combinacoes[combinacao];
+                        if (Diario.dados.combinacaoAtual === combinacao) {
+                            Diario.dados.combinacaoAtual = null;
+                        }
+                        salvarDados(Diario.dados).then(() => {
+                            this.carregarCombinacoes();
+                            Diario.funcoes.mostrarNotificacao("Combinação removida com sucesso!");
+                        });
+                    }
+                },
+
+                mostrarCombinacao(combinacao) {
+                    Diario.dados.combinacaoAtual = combinacao;
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-combinacao").style.display = "block";
+                    document.getElementById("combinacao-titulo").textContent = combinacao;
+                    this.mostrarResumo('frequencia');
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                mostrarConfigBimestres() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-config-bimestres").style.display = "block";
+                    document.getElementById("combinacao-config-nome").textContent = Diario.dados.combinacaoAtual;
+                    const bimestres = Diario.dados.combinacoes[Diario.dados.combinacaoAtual].bimestres;
+                    ['1', '2', '3', '4'].forEach(i => {
+                        document.getElementById(`bimestre${i}-inicio`).value = bimestres[i - 1].inicio;
+                        document.getElementById(`bimestre${i}-fim`).value = bimestres[i - 1].fim;
+                    });
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                configurarBimestres() {
+                    const combinacao = document.getElementById("combinacao-config-nome").textContent;
+                    const bimestres = ['1', '2', '3', '4'].map(i => ({
+                        inicio: document.getElementById(`bimestre${i}-inicio`).value,
+                        fim: document.getElementById(`bimestre${i}-fim`).value
+                    }));
+
+                    if (!bimestres.every(b => b.inicio && b.fim)) {
+                        Diario.funcoes.mostrarNotificacao("Preencha todas as datas!", "erro");
+                        return;
+                    }
+
+                    for (let i = 0; i < bimestres.length; i++) {
+                        const inicio = new Date(bimestres[i].inicio);
+                        const fim = new Date(bimestres[i].fim);
+                        if (inicio >= fim) {
+                            Diario.funcoes.mostrarNotificacao(`O início do ${i + 1}º bimestre deve ser anterior ao fim!`, "erro");
+                            return;
+                        }
+                        if (i > 0) {
+                            const fimAnterior = new Date(bimestres[i - 1].fim);
+                            if (inicio <= fimAnterior) {
+                                Diario.funcoes.mostrarNotificacao(`O ${i + 1}º bimestre não pode começar antes ou no mesmo dia que o fim do ${i}º!`, "erro");
+                                return;
+                            }
+                        }
+                    }
+
+                    Diario.dados.combinacoes[combinacao].bimestres = bimestres;
+                    salvarDados(Diario.dados).then(() => {
+                        this.voltarCombinacao();
+                        Diario.funcoes.mostrarNotificacao("Bimestres configurados com sucesso!");
+                    });
+                },
+
+                construirListaFrequencia(turma) {
+                    let html = `
+                        <h3>Faltas por Bimestre</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    <th>1º Bim.</th>
+                                    <th>2º Bim.</th>
+                                    <th>3º Bim.</th>
+                                    <th>4º Bim.</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    if (!Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.frequencia?.length) {
+                        html += `<tr><td colspan="6">Nenhuma frequência</td></tr>`;
+                    } else {
+                        turma.alunos.forEach(aluno => {
+                            let faltas = [0, 0, 0, 0], justificadas = [0, 0, 0, 0], totalF = 0, totalJ = 0;
+                            Diario.dados.combinacoes[Diario.dados.combinacaoAtual].frequencia.forEach(f => {
+                                const data = new Date(f.data);
+                                const reg = f.registros.find(r => r.aluno === `${aluno.numero}. ${aluno.nome}`);
+                                if (reg) {
+                                    const v = (reg.tipo === 'F' || reg.tipo === 'J') ? 1 : (reg.tipo === 'D' || reg.tipo === 'JD') ? 2 : 0;
+                                    const j = (reg.tipo === 'J' || reg.tipo === 'JD') ? v : 0;
+                                    Diario.dados.combinacoes[Diario.dados.combinacaoAtual].bimestres.forEach((b, i) => {
+                                        if (data >= new Date(b.inicio) && data <= new Date(b.fim)) {
+                                            faltas[i] += v;
+                                            justificadas[i] += j;
+                                        }
+                                    });
+                                    totalF += v;
+                                    totalJ += j;
+                                }
+                            });
+                            html += `
+                                <tr>
+                                    <td>${aluno.numero}. ${aluno.nome}</td>
+                                    <td><span style="color: red;">${faltas[0]}</span> (<span style="color: blue;">${justificadas[0]}</span>)</td>
+                                    <td><span style="color: red;">${faltas[1]}</span> (<span style="color: blue;">${justificadas[1]}</span>)</td>
+                                    <td><span style="color: red;">${faltas[2]}</span> (<span style="color: blue;">${justificadas[2]}</span>)</td>
+                                    <td><span style="color: red;">${faltas[3]}</span> (<span style="color: blue;">${justificadas[3]}</span>)</td>
+                                    <td><span style="color: red;">${totalF}</span> (<span style="color: blue;">${totalJ}</span>)</td>
+                                </tr>`;
+                        });
+                    }
+                    html += `</tbody></table>`;
+                    return html;
+                },
+
+                construirListaHistoricoFrequencia(turma, bimestreIdx) {
+                    const registros = (Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.frequencia || [])
+                        .filter(f => new Date(f.data) >= new Date(Diario.dados.combinacoes[Diario.dados.combinacaoAtual].bimestres[bimestreIdx].inicio) &&
+                            new Date(f.data) <= new Date(Diario.dados.combinacoes[Diario.dados.combinacaoAtual].bimestres[bimestreIdx].fim))
+                        .sort((a, b) => new Date(a.data) - new Date(b.data));
+                    let html = `
+                        <h3>Histórico - ${bimestreIdx + 1}º Bimestre</h3>
+                        <div class="tabs">
+                            ${[0, 1, 2, 3].map(i => `<button class="aba" onclick="Diario.telas.mostrarHistoricoFrequencia(${i})">${i + 1}º Bim.</button>`).join('')}
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    ${registros.map(f => `<th>${Diario.funcoes.formatarData(f.data, true)}</th>`).join('')}
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    if (!registros.length) {
+                        html += `<tr><td colspan="${registros.length + 1}">Sem registros</td></tr>`;
+                    } else {
+                        turma.alunos.forEach(aluno => {
+                            html += `
+                                <tr>
+                                    <td>${aluno.numero}. ${aluno.nome}</td>
+                                    ${registros.map(f => `<td>${f.registros.find(r => r.aluno === `${aluno.numero}. ${aluno.nome}`)?.tipo || '-'}</td>`).join('')}
+                                </tr>`;
+                        });
+                    }
+                    html += `</tbody></table>`;
+                    return html;
+                },
+
+                construirListaConteudo() {
+                    const conteudos = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.conteudo || [];
+                    let html = `
+                        <h3>Conteúdos</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Conteúdo</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    if (!conteudos.length) {
+                        html += `<tr><td colspan="2">Sem conteúdos</td></tr>`;
+                    } else {
+                        conteudos.sort((a, b) => new Date(b.data) - new Date(a.data)).forEach(c => {
+                            html += `
+                                <tr>
+                                    <td>${c.texto}</td>
+                                    <td>${Diario.funcoes.formatarData(c.data)}</td>
+                                </tr>`;
+                        });
+                    }
+                    html += `</tbody></table>`;
+                    return html;
+                },
+
+                construirListaNotas(turma) {
+                    const notas = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.notas || [];
+                    let html = `
+                        <h3>Notas por Bimestre</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    <th>1º Bim.</th>
+                                    <th>2º Bim.</th>
+                                    <th>3º Bim.</th>
+                                    <th>4º Bim.</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    turma.alunos.forEach(aluno => {
+                        const alunoNotas = notas.find(n => n.aluno === `${aluno.numero}. ${aluno.nome}`) || { bimestres: [[null, null, null], [null, null, null], [null, null, null], [null, null, null]] };
+                        html += `
+                            <tr>
+                                <td>${aluno.numero}. ${aluno.nome}</td>
+                                ${alunoNotas.bimestres.map(b => `<td style="color:${Diario.funcoes.calcularMediaBimestral(b) === '-' ? 'black' : Diario.funcoes.calcularMediaBimestral(b) >= 7 ? '#00008B' : 'red'}">${Diario.funcoes.calcularMediaBimestral(b)}</td>`).join('')}
+                            </tr>`;
+                    });
+                    html += `</tbody></table>`;
+                    return html;
+                },
+
+                construirListaAtividades(turma) {
+                    const atividades = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.atividades || [];
+                    let html = `
+                        <h3>Atividades por Bimestre</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    <th>1º Bim. (C/I/N)</th>
+                                    <th>2º Bim. (C/I/N)</th>
+                                    <th>3º Bim. (C/I/N)</th>
+                                    <th>4º Bim. (C/I/N)</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    if (!atividades.length) {
+                        html += `<tr><td colspan="5">Sem atividades</td></tr>`;
+                    } else {
+                        turma.alunos.forEach(aluno => {
+                            html += `
+                                <tr>
+                                    <td>${aluno.numero}. ${aluno.nome}</td>
+                                    ${[0, 1, 2, 3].map(i => {
+                                const regs = atividades.filter(a => new Date(a.data) >= new Date(Diario.dados.combinacoes[Diario.dados.combinacaoAtual].bimestres[i].inicio) &&
+                                    new Date(a.data) <= new Date(Diario.dados.combinacoes[Diario.dados.combinacaoAtual].bimestres[i].fim));
+                                const total = regs.length;
+                                const cCount = total ? Math.round((regs.filter(a => a.registros.find(r => r.aluno === `${aluno.numero}. ${aluno.nome}`)?.tipo === 'C').length / total * 100)) : 0;
+                                const iCount = total ? Math.round((regs.filter(a => a.registros.find(r => r.aluno === `${aluno.numero}. ${aluno.nome}`)?.tipo === 'I').length / total * 100)) : 0;
+                                const nCount = total ? Math.round((regs.filter(a => a.registros.find(r => r.aluno === `${aluno.numero}. ${aluno.nome}`)?.tipo === 'N').length / total * 100)) : 0;
+                                return `<td>${cCount}% / ${iCount}% / ${nCount}%</td>`;
+                            }).join('')}
+                                </tr>`;
+                        });
+                    }
+                    html += `</tbody></table>`;
+                    return html;
+                },
+
+                construirListaResultados(turma) {
+                    const notas = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.notas || [];
+                    let html = `
+                        <h3>Resultados Finais</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    <th>Média Geral</th>
+                                    <th>Recuperação</th>
+                                    <th>Situação</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    turma.alunos.forEach(aluno => {
+                        const alunoNotas = notas.find(n => n.aluno === `${aluno.numero}. ${aluno.nome}`) || { bimestres: [[null, null, null], [null, null, null], [null, null, null], [null, null, null]] };
+                        const media = Diario.funcoes.calcularMediaGeral(alunoNotas.bimestres);
+                        const rec = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.recuperacao.find(r => r.aluno === `${aluno.numero}. ${aluno.nome}`)?.nota || null;
+                        const mediaDisplay = media === '-' ? '-' : media.toFixed(1);
+                        const colorMedia = media === '-' ? 'black' : media >= 7 ? '#00008B' : 'red';
+                        const recDisplay = rec === null ? '-' : rec.toFixed(1);
+                        const colorRec = rec === null ? 'black' : rec >= 7 ? '#00008B' : 'red';
+                        const situacao = (media >= 7 || (rec !== null && rec >= 7)) ? '✔️ Aprovado' : '✖️ Reprovado';
+                        html += `
+                            <tr>
+                                <td>${aluno.numero}. ${aluno.nome}</td>
+                                <td style="color: ${colorMedia}">${mediaDisplay}</td>
+                                <td style="color: ${colorRec}">${recDisplay}</td>
+                                <td>${situacao}</td>
+                            </tr>`;
+                    });
+                    html += `</tbody></table>`;
+                    return html;
+                },
+
+                mostrarResumo(tipo) {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-combinacao").style.display = "block";
+                    document.querySelectorAll('.aba').forEach(aba => aba.classList.remove('ativa'));
+                    document.querySelector(`.aba[onclick="Diario.telas.mostrarResumo('${tipo}')"]`).classList.add('ativa');
+                    const conteudo = document.getElementById("resumo-conteudo");
+                    const resumosDiv = document.getElementById("combinacao-resumos");
+                    const turmaNome = Diario.dados.combinacaoAtual.split(" - ")[1];
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === turmaNome);
+                    if (!turma) {
+                        conteudo.innerHTML = "<p>Turma não encontrada.</p>";
+                        return;
+                    }
+                    if (!document.getElementById('busca-resumo')) {
+                        resumosDiv.insertBefore(
+                            Object.assign(document.createElement('input'), {
+                                id: 'busca-resumo',
+                                placeholder: 'Buscar aluno por nome',
+                                style: 'width: 90%; margin-bottom: 10px;'
+                            }),
+                            document.getElementById('abas')
+                        );
+                    }
+                    conteudo.innerHTML = this[`construirLista${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`](turma);
+                    if (tipo === 'frequencia') conteudo.innerHTML += this.construirListaHistoricoFrequencia(turma, 0);
+                    document.getElementById('busca-resumo').oninput = () => Diario.telas.filtrarResumo(tipo);
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                mostrarHistoricoFrequencia(bimestre) {
+                    const combinacao = Diario.dados.combinacaoAtual;
+                    const turmaNome = combinacao.split(" - ")[1];
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === turmaNome);
+                    document.getElementById("resumo-titulo").textContent = `Frequência - ${combinacao}`;
+                    const conteudo = document.getElementById("resumo-conteudo");
+                    conteudo.innerHTML = this.construirListaFrequencia(turma) + this.construirListaHistoricoFrequencia(turma, bimestre);
+                    document.getElementById('busca-resumo').value = '';
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                mostrarTelaNotas() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-notas").style.display = "block";
+                    document.getElementById("notas-titulo").textContent = `Notas - ${Diario.dados.combinacaoAtual}`;
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual.split(" - ")[1]);
+                    const notas = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.notas || [];
+                    document.getElementById("notas-lista").innerHTML = `
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Aluno</th>
+                                        <th>1º Bimestre</th>
+                                        <th>2º Bimestre</th>
+                                        <th>3º Bimestre</th>
+                                        <th>4º Bimestre</th>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th>N1 N2 RP Média</th>
+                                        <th>N1 N2 RP Média</th>
+                                        <th>N1 N2 RP Média</th>
+                                        <th>N1 N2 RP Média</th>
+                                    </tr>
+                                </thead>
+                                <tbody>` + turma.alunos.map(a => {
+                        const n = notas.find(n => n.aluno === `${a.numero}. ${a.nome}`) || { bimestres: [[null, null, null], [null, null, null], [null, null, null], [null, null, null]] };
+                        return `
+                                    <tr>
+                                        <td>${a.numero}. ${a.nome}</td>
+                                        ${n.bimestres.map((b, i) => {
+                            const media = Diario.funcoes.calcularMediaBimestral(b);
+                            const mediaDisplay = media === '-' ? '-' : media.toFixed(1);
+                            const color = media === '-' ? 'black' : media >= 7 ? '#00008B' : 'red';
+                            const mediaN1N2 = Diario.funcoes.calcularMediaBimestral([b[0], b[1]]);
+                            const rpDisabled = (b[0] === null || b[1] === null || mediaN1N2 >= 7 || mediaN1N2 === '-') ? 'disabled' : '';
+                            return `
+                                            <td>
+                                                <div class="nota-group">
+                                                    <input type="number" min="0" max="10" step="0.1" name="${a.numero}-b${i}-n1" value="${b[0] !== null ? b[0] : ''}" aria-label="Nota N1 do ${i + 1}º bimestre para ${a.nome}">
+                                                    <input type="number" min="0" max="10" step="0.1" name="${a.numero}-b${i}-n2" value="${b[1] !== null ? b[1] : ''}" aria-label="Nota N2 do ${i + 1}º bimestre para ${a.nome}">
+                                                    <input type="number" min="0" max="10" step="0.1" name="${a.numero}-b${i}-rp" value="${b[2] !== null ? b[2] : ''}" ${rpDisabled} aria-label="Nota RP do ${i + 1}º bimestre para ${a.nome}">
+                                                    <span class="media-display" style="color: ${color}">${mediaDisplay}</span>
+                                                </div>
+                                            </td>`;
+                        }).join('')}
+                                    </tr>`;
+                    }).join('') + `
+                                </tbody>
+                            </table>
+                        </div>`;
+
+                    const debouncedAtualizarNota = Diario.funcoes.debounce((input, alunoNum, bimestre) => {
+                        Diario.telas.atualizarNota(input, alunoNum, bimestre);
+                    }, 300);
+
+                    document.querySelectorAll('#notas-lista input[type="number"]').forEach(input => {
+                        input.oninput = function () {
+                            if (this.value && (this.value < 0 || this.value > 10)) {
+                                this.value = '';
+                                Diario.funcoes.mostrarNotificacao("Nota deve estar entre 0 e 10!", "erro");
+                            }
+                            const [alunoNum, bimestre] = this.name.match(/(\d+)-b(\d+)/).slice(1);
+                            debouncedAtualizarNota(this, parseInt(alunoNum), parseInt(bimestre));
+                        };
+                    });
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                mostrarTelaFrequencia() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-frequencia").style.display = "block";
+                    document.getElementById("frequencia-titulo").textContent = `Frequência - ${Diario.dados.combinacaoAtual}`;
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual.split(" - ")[1]);
+                    const dataInput = document.getElementById("frequencia-data");
+                    const lista = document.getElementById("frequencia-lista");
+
+                    const atualizarFrequencia = () => {
+                        const data = dataInput.value;
+                        let html = `
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Aluno</th>
+                                        <th>P</th><th>F</th><th>D</th><th>J</th><th>JD</th>
+                                    </tr>
+                                </thead>
+                                <tbody>` + turma.alunos.map(a => {
+                            const reg = data ? Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.frequencia.find(f => f.data === data)?.registros.find(r => r.aluno === `${a.numero}. ${a.nome}`) : null;
+                            return `
+                                        <tr>
+                                            <td>${a.numero}. ${a.nome}</td>
+                                            <td><input type="radio" name="frequencia-${a.numero}" value="P" ${reg?.tipo === 'P' || !reg ? 'checked' : ''}></td>
+                                            <td><input type="radio" name="frequencia-${a.numero}" value="F" ${reg?.tipo === 'F' ? 'checked' : ''}></td>
+                                            <td><input type="radio" name="frequencia-${a.numero}" value="D" ${reg?.tipo === 'D' ? 'checked' : ''}></td>
+                                            <td><input type="radio" name="frequencia-${a.numero}" value="J" ${reg?.tipo === 'J' ? 'checked' : ''}></td>
+                                            <td><input type="radio" name="frequencia-${a.numero}" value="JD" ${reg?.tipo === 'JD' ? 'checked' : ''}></td>
+                                        </tr>`;
+                        }).join('') + `
+                                </tbody>
+                            </table>`;
+                        const registros = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.frequencia || [];
+                        html += `
+                            <div class="registros-select">
+                                <select id="frequencia-registros">
+                                    <option value="">${registros.length} registros</option>` +
+                            registros.map(f => `
+                                        <option value="${f.data}">${Diario.funcoes.formatarData(f.data)}</option>`).join('') + `
+                                </select>
+                                <button class="btn" onclick="Diario.telas.removerFrequencia(document.getElementById('frequencia-registros').value)"><i class="fas fa-trash"></i> Remover</button>
+                            </div>`;
+                        lista.innerHTML = html;
+                    };
+
+                    atualizarFrequencia();
+                    dataInput.onchange = atualizarFrequencia;
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                registrarFrequencia() {
+                    const data = document.getElementById("frequencia-data").value;
+                    if (!data) return Diario.funcoes.mostrarNotificacao("Selecione uma data!", "erro");
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual.split(" - ")[1]);
+                    const registros = turma.alunos.map(a => ({
+                        aluno: `${a.numero}. ${a.nome}`,
+                        tipo: document.querySelector(`input[name="frequencia-${a.numero}"]:checked`).value
+                    }));
+                    if (Diario.dados.combinacoes[Diario.dados.combinacaoAtual].frequencia.some(f => f.data === data)) {
+                        if (!confirm("Sobrescrever frequência existente?")) return;
+                        Diario.dados.combinacoes[Diario.dados.combinacaoAtual].frequencia =
+                            Diario.dados.combinacoes[Diario.dados.combinacaoAtual].frequencia.filter(f => f.data !== data);
+                    }
+                    Diario.dados.combinacoes[Diario.dados.combinacaoAtual].frequencia.push({ data, registros });
+                    salvarDados(Diario.dados).then(() => {
+                        this.mostrarTelaFrequencia();
+                        Diario.funcoes.mostrarNotificacao("Frequência registrada com sucesso!");
+                    });
+                },
+
+                removerFrequencia(data) {
+                    if (confirm(`Remover frequência de ${Diario.funcoes.formatarData(data)}?`)) {
+                        Diario.dados.combinacoes[Diario.dados.combinacaoAtual].frequencia =
+                            Diario.dados.combinacoes[Diario.dados.combinacaoAtual].frequencia.filter(f => f.data !== data);
+                        salvarDados(Diario.dados).then(() => {
+                            this.mostrarTelaFrequencia();
+                            Diario.funcoes.mostrarNotificacao("Frequência removida com sucesso!");
+                        });
+                    }
+                },
+
+                mostrarTelaAtividades() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-atividades").style.display = "block";
+                    document.getElementById("atividades-titulo").textContent = `Atividades - ${Diario.dados.combinacaoAtual}`;
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual.split(" - ")[1]);
+                    const dataInput = document.getElementById("atividades-data");
+                    const lista = document.getElementById("atividades-lista");
+                    let html = `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    <th>C</th><th>I</th><th>N</th>
+                                </tr>
+                            </thead>
+                            <tbody>` + turma.alunos.map(a => {
+                        const reg = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.atividades.find(a => a.data === dataInput.value)?.registros.find(r => r.aluno === `${a.numero}. ${a.nome}`);
+                        return `
+                                    <tr>
+                                        <td>${a.numero}. ${a.nome}</td>
+                                        <td><input type="radio" name="atividade-${a.numero}" value="C" ${reg?.tipo === 'C' || !reg ? 'checked' : ''}></td>
+                                        <td><input type="radio" name="atividade-${a.numero}" value="I" ${reg?.tipo === 'I' ? 'checked' : ''}></td>
+                                        <td><input type="radio" name="atividade-${a.numero}" value="N" ${reg?.tipo === 'N' ? 'checked' : ''}></td>
+                                    </tr>`;
+                    }).join('') + `
+                            </tbody>
+                        </table>`;
+                    const registros = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.atividades || [];
+                    html += `
+                        <div class="registros-select">
+                            <select id="atividades-registros">
+                                <option value="">${registros.length} registros</option>` +
+                        registros.map(a => `
+                                    <option value="${a.data}">${Diario.funcoes.formatarData(a.data)}</option>`).join('') + `
+                            </select>
+                            <button class="btn" onclick="Diario.telas.removerAtividade(document.getElementById('atividades-registros').value)"><i class="fas fa-trash"></i> Remover</button>
+                        </div>`;
+                    lista.innerHTML = html;
+                    dataInput.onchange = () => this.mostrarTelaAtividades();
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                removerAtividade(data) {
+                    if (confirm(`Remover atividade de ${Diario.funcoes.formatarData(data)}?`)) {
+                        Diario.dados.combinacoes[Diario.dados.combinacaoAtual].atividades =
+                            Diario.dados.combinacoes[Diario.dados.combinacaoAtual].atividades.filter(a => a.data !== data);
+                        salvarDados(Diario.dados).then(() => {
+                            this.mostrarTelaAtividades();
+                            Diario.funcoes.mostrarNotificacao("Atividade removida com sucesso!");
+                        });
+                    }
+                },
+
+                registrarAtividade() {
+                    const data = document.getElementById("atividades-data").value;
+                    if (!data) return Diario.funcoes.mostrarNotificacao("Selecione uma data!", "erro");
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual.split(" - ")[1]);
+                    const registros = turma.alunos.map(a => ({
+                        aluno: `${a.numero}. ${a.nome}`,
+                        tipo: document.querySelector(`input[name="atividade-${a.numero}"]:checked`).value
+                    }));
+                    if (Diario.dados.combinacoes[Diario.dados.combinacaoAtual].atividades.some(a => a.data === data)) {
+                        if (!confirm("Sobrescrever atividade existente?")) return;
+                        Diario.dados.combinacoes[Diario.dados.combinacaoAtual].atividades =
+                            Diario.dados.combinacoes[Diario.dados.combinacaoAtual].atividades.filter(a => a.data !== data);
+                    }
+                    Diario.dados.combinacoes[Diario.dados.combinacaoAtual].atividades.push({ data, registros });
+                    salvarDados(Diario.dados).then(() => {
+                        this.mostrarTelaAtividades();
+                        Diario.funcoes.mostrarNotificacao("Atividade registrada com sucesso!");
+                    });
+                },
+
+                atualizarNota(input, alunoNum, bimestre) {
+                    const inputs = input.closest('.nota-group').querySelectorAll(`input[name^="${alunoNum}-b${bimestre}"]`);
+                    const notasTemp = [
+                        inputs[0].value ? Diario.funcoes.arredondarNota(inputs[0].value) : null,
+                        inputs[1].value ? Diario.funcoes.arredondarNota(inputs[1].value) : null,
+                        inputs[2].value ? Diario.funcoes.arredondarNota(inputs[2].value) : null
+                    ];
+                    const mediaN1N2 = Diario.funcoes.calcularMediaBimestral([notasTemp[0], notasTemp[1]]);
+                    const rpInput = inputs[2];
+                    if (notasTemp[0] === null || notasTemp[1] === null || mediaN1N2 >= 7 || mediaN1N2 === '-') {
+                        notasTemp[2] = null;
+                        rpInput.value = '';
+                        rpInput.disabled = true;
+                    } else {
+                        rpInput.disabled = false;
+                    }
+                    const media = Diario.funcoes.calcularMediaBimestral(notasTemp);
+                    const mediaDisplay = media === '-' ? '-' : media.toFixed(1);
+                    const color = media === '-' ? 'black' : media >= 7 ? '#00008B' : 'red';
+                    const mediaSpan = input.closest('.nota-group').querySelector('.media-display');
+                    mediaSpan.style.color = color;
+                    mediaSpan.textContent = mediaDisplay;
+                },
+
+                salvarNotas() {
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual.split(" - ")[1]);
+                    const notas = [];
+                    let hasInvalid = false;
+
+                    turma.alunos.forEach(aluno => {
+                        const alunoNotas = {
+                            aluno: `${aluno.numero}. ${aluno.nome}`,
+                            bimestres: []
+                        };
+                        for (let i = 0; i < 4; i++) {
+                            const inputs = document.querySelectorAll(`input[name^="${aluno.numero}-b${i}"]`);
+                            const bimestreNotas = [
+                                inputs[0].value ? Diario.funcoes.arredondarNota(inputs[0].value) : null,
+                                inputs[1].value ? Diario.funcoes.arredondarNota(inputs[1].value) : null,
+                                inputs[2].value ? Diario.funcoes.arredondarNota(inputs[2].value) : null
+                            ];
+                            bimestreNotas.forEach((nota, idx) => {
+                                if (nota !== null && (nota < 0 || nota > 10)) {
+                                    hasInvalid = true;
+                                    inputs[idx].style.borderColor = 'red';
+                                }
+                            });
+                            alunoNotas.bimestres.push(bimestreNotas);
+                        }
+                        notas.push(alunoNotas);
+                    });
+
+                    if (hasInvalid) {
+                        Diario.funcoes.mostrarNotificacao("Existem notas inválidas (devem ser entre 0 e 10)!", "erro");
+                        return;
+                    }
+
+                    Diario.dados.combinacoes[Diario.dados.combinacaoAtual].notas = notas;
+                    salvarDados(Diario.dados).then(() => {
+                        this.notasSalvas = true;
+                        Diario.funcoes.mostrarNotificacao("Notas salvas com sucesso!");
+                    });
+                },
+
+                mostrarTelaConteudo() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-conteudo").style.display = "block";
+                    document.getElementById("conteudo-titulo").textContent = `Conteúdo - ${Diario.dados.combinacaoAtual}`;
+                    const dataInput = document.getElementById("conteudo-data");
+                    const textoInput = document.getElementById("conteudo-texto");
+                    const registros = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.conteudo || [];
+                    const updateConteudo = () => {
+                        const data = dataInput.value;
+                        const existing = registros.find(c => c.data === data);
+                        textoInput.value = existing?.texto || '';
+                    };
+                    dataInput.onchange = updateConteudo;
+                    updateConteudo();
+                    document.getElementById("conteudo-lista").innerHTML = `
+                        <div class="registros-select">
+                            <select id="conteudo-registros">
+                                <option value="">${registros.length} registros</option>` +
+                        registros.map(c => `
+                                    <option value="${c.data}">${Diario.funcoes.formatarData(c.data)}: ${c.texto.substring(0, 20)}${c.texto.length > 20 ? '...' : ''}</option>`).join('') + `
+                            </select>
+                            <button class="btn" onclick="Diario.telas.removerConteudo(document.getElementById('conteudo-registros').value)"><i class="fas fa-trash"></i> Remover</button>
+                        </div>`;
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                removerConteudo(data) {
+                    if (confirm(`Remover conteúdo de ${Diario.funcoes.formatarData(data)}?`)) {
+                        Diario.dados.combinacoes[Diario.dados.combinacaoAtual].conteudo =
+                            Diario.dados.combinacoes[Diario.dados.combinacaoAtual].conteudo.filter(c => c.data !== data);
+                        salvarDados(Diario.dados).then(() => {
+                            this.mostrarTelaConteudo();
+                            Diario.funcoes.mostrarNotificacao("Conteúdo removido com sucesso!");
+                        });
+                    }
+                },
+
+                registrarConteudo() {
+                    const data = document.getElementById("conteudo-data").value;
+                    const texto = document.getElementById("conteudo-texto").value.trim();
+                    if (!data || !texto) return Diario.funcoes.mostrarNotificacao("Preencha data e conteúdo!", "erro");
+                    if (Diario.dados.combinacoes[Diario.dados.combinacaoAtual].conteudo.some(c => c.data === data)) {
+                        if (!confirm("Sobrescrever conteúdo existente?")) return;
+                        Diario.dados.combinacoes[Diario.dados.combinacaoAtual].conteudo =
+                            Diario.dados.combinacoes[Diario.dados.combinacaoAtual].conteudo.filter(c => c.data !== data);
+                    }
+                    Diario.dados.combinacoes[Diario.dados.combinacaoAtual].conteudo.push({ data, texto });
+                    salvarDados(Diario.dados).then(() => {
+                        this.mostrarTelaConteudo();
+                        Diario.funcoes.mostrarNotificacao("Conteúdo registrado com sucesso!");
+                    });
+                },
+
+                mostrarTelaRecuperacao() {
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-recuperacao").style.display = "block";
+                    document.getElementById("recuperacao-titulo").textContent = `Recuperação - ${Diario.dados.combinacaoAtual}`;
+                    document.getElementById("recuperacao-conteudo").innerHTML = "";
+                    document.getElementById("btn-salvar-recuperacao").style.display = "none";
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                mostrarRecuperacaoConjugada() {
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual.split(" - ")[1]);
+                    const notas = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.notas || [];
+                    const recuperacao = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.recuperacao || [];
+                    document.getElementById("recuperacao-conteudo").innerHTML = `
+                        <h3>Recuperação com Paralela</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    <th>4º Bim</th>
+                                    <th>RP</th>
+                                    <th>Recuperação</th>
+                                </tr>
+                            </thead>
+                            <tbody>` + turma.alunos.map(a => {
+                        const n = notas.find(n => n.aluno === `${a.numero}. ${a.nome}`) || { bimestres: [[null, null, null], [null, null, null], [null, null, null], [null, null, null]] };
+                        const mediaN1N2 = Diario.funcoes.calcularMediaBimestral([n.bimestres[3][0], n.bimestres[3][1]]);
+                        const media4 = Diario.funcoes.calcularMediaBimestral(n.bimestres[3]);
+                        const media4Display = media4 === '-' ? '-' : media4.toFixed(1);
+                        const color4 = media4 === '-' ? 'black' : media4 >= 7 ? '#00008B' : 'red';
+                        const rec = recuperacao.find(r => r.aluno === `${a.numero}. ${a.nome}`)?.nota || null;
+                        const recDisplay = rec === null ? '-' : rec.toFixed(1);
+                        const colorRec = rec === null ? 'black' : rec >= 7 ? '#00008B' : 'red';
+                        const mediaG = Diario.funcoes.calcularMediaGeral(n.bimestres);
+                        if (mediaG < 7 || (media4 !== "-" && media4 < 7)) {
+                            return `
+                                        <tr>
+                                            <td>${a.numero}. ${a.nome}</td>
+                                            <td><span class="media-display" style="color: ${color4}" data-bimestre="3" data-aluno="${a.numero}">${media4Display}</span></td>
+                                            <td><input type="number" min="0" max="10" step="0.1" name="rp-${a.numero}" value="${n.bimestres[3][2] || ''}" ${mediaN1N2 >= 7 ? 'disabled' : ''} onchange="Diario.telas.atualizarRecuperacao(this, ${a.numero}, true)"></td>
+                                            <td><input type="number" min="0" max="10" step="0.1" name="rec-${a.numero}" value="${rec || ''}" onchange="Diario.telas.atualizarRecuperacao(this, ${a.numero}, false)"></td>
+                                        </tr>`;
+                        }
+                    }).filter(Boolean).join('') + `
+                            </tbody>
+                        </table>`;
+                    document.getElementById("btn-salvar-recuperacao").style.display = "inline";
+                    document.querySelectorAll('#recuperacao-conteudo input[type="number"]').forEach(input => {
+                        input.oninput = function () {
+                            if (this.value && (this.value < 0 || this.value > 10)) {
+                                this.value = '';
+                                Diario.funcoes.mostrarNotificacao("Nota deve estar entre 0 e 10!", "erro");
+                            }
+                        };
+                    });
+                },
+
+                mostrarRecuperacaoExclusiva() {
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual.split(" - ")[1]);
+                    const notas = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.notas || [];
+                    const recuperacao = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.recuperacao || [];
+                    document.getElementById("recuperacao-conteudo").innerHTML = `
+                        <h3>Recuperação Exclusiva</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Aluno</th>
+                                    <th>Média Geral</th>
+                                    <th>Recuperação</th>
+                                </tr>
+                            </thead>
+                            <tbody>` + turma.alunos.map(a => {
+                        const n = notas.find(n => n.aluno === `${a.numero}. ${a.nome}`) || { bimestres: [[null, null, null], [null, null, null], [null, null, null], [null, null, null]] };
+                        const media = Diario.funcoes.calcularMediaGeral(n.bimestres);
+                        const mediaDisplay = media === '-' ? '-' : media.toFixed(1);
+                        const color = media === '-' ? 'black' : media >= 7 ? '#00008B' : 'red';
+                        const rec = recuperacao.find(r => r.aluno === `${a.numero}. ${a.nome}`)?.nota || null;
+                        const recDisplay = rec === null ? '-' : rec.toFixed(1);
+                        const colorRec = rec === null ? 'black' : rec >= 7 ? '#00008B' : 'red';
+                        if (media < 7) {
+                            return `
+                                        <tr>
+                                            <td>${a.numero}. ${a.nome}</td>
+                                            <td><span class="media-display" style="color: ${color}">${mediaDisplay}</span></td>
+                                            <td><input type="number" min="0" max="10" step="0.1" name="rec-${a.numero}" value="${rec || ''}" onchange="Diario.telas.atualizarRecuperacao(this, ${a.numero}, false)"></td>
+                                        </tr>`;
+                        }
+                    }).filter(Boolean).join('') + `
+                            </tbody>
+                        </table>`;
+                    document.getElementById("btn-salvar-recuperacao").style.display = "inline";
+                    document.querySelectorAll('#recuperacao-conteudo input[type="number"]').forEach(input => {
+                        input.oninput = function () {
+                            if (this.value && (this.value < 0 || this.value > 10)) {
+                                this.value = '';
+                                Diario.funcoes.mostrarNotificacao("Nota deve estar entre 0 e 10!", "erro");
+                            }
+                        };
+                    });
+                },
+
+                atualizarRecuperacao(input, alunoNum, isRP) {
+                    const aluno = `${alunoNum}. ${input.closest('tr').querySelector('td:first-child').textContent.split('. ')[1]}`;
+                    const row = input.closest('tr');
+                    if (isRP) {
+                        const rpValue = input.value ? Diario.funcoes.arredondarNota(input.value) : null;
+                        const notasSalvas = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.notas || [];
+                        const recuperacaoSalva = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.recuperacao || [];
+                        const alunoNotas = notasSalvas.find(n => n.aluno === aluno) || { bimestres: [[null, null, null], [null, null, null], [null, null, null], [null, null, null]] };
+                        const mediaN1N2 = Diario.funcoes.calcularMediaBimestral([alunoNotas.bimestres[3][0], alunoNotas.bimestres[3][1]]);
+                        const notasTemp = [alunoNotas.bimestres[3][0], alunoNotas.bimestres[3][1], rpValue];
+                        if (mediaN1N2 >= 7) {
+                            input.value = '';
+                            input.disabled = true;
+                        }
+                        const media4 = Diario.funcoes.calcularMediaBimestral(notasTemp);
+                        const media4Display = media4 === '-' ? '-' : media4.toFixed(1);
+                        const color4 = media4 === '-' ? 'black' : media4 >= 7 ? '#00008B' : 'red';
+                        const mediaSpan = row.querySelector('.media-display');
+                        mediaSpan.style.color = color4;
+                        mediaSpan.textContent = media4Display;
+                        const mediaGeral = Diario.funcoes.calcularMediaGeral(alunoNotas.bimestres.map((b, i) => i === 3 ? notasTemp : b));
+                        const recCell = row.querySelector('td:last-child');
+                        const recSalva = recuperacaoSalva.find(r => r.aluno === aluno)?.nota || null;
+                        if (mediaGeral >= 7) {
+                            row.classList.add('aprovado-por-media');
+                            recCell.innerHTML = '<span style="color: green; font-weight: bold;">Aprovado por Média</span>';
+                        } else {
+                            row.classList.remove('aprovado-por-media');
+                            recCell.innerHTML = `<input type="number" min="0" max="10" step="0.1" name="rec-${alunoNum}" value="${recSalva !== null ? recSalva : ''}" onchange="Diario.telas.atualizarRecuperacao(this, ${alunoNum}, false)">`;
+                            const newRecInput = recCell.querySelector(`input[name="rec-${alunoNum}"]`);
+                            newRecInput.oninput = function () {
+                                if (this.value && (this.value < 0 || this.value > 10)) {
+                                    this.value = '';
+                                    Diario.funcoes.mostrarNotificacao("Nota deve estar entre 0 e 10!", "erro");
+                                }
+                            };
+                        }
+                    } else {
+                        const recValue = input.value ? Diario.funcoes.arredondarNota(input.value) : null;
+                        input.value = recValue !== null ? recValue : '';
+                    }
+                },
+
+                salvarRecuperacao() {
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual.split(" - ")[1]);
+                    let notas = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.notas || [];
+                    let recuperacao = [];
+                    turma.alunos.forEach(aluno => {
+                        const alunoNum = aluno.numero;
+                        const rpInput = document.querySelector(`input[name="rp-${alunoNum}"]`);
+                        const recInput = document.querySelector(`input[name="rec-${alunoNum}"]`);
+                        let alunoNotas = notas.find(n => n.aluno === `${alunoNum}. ${aluno.nome}`) || { aluno: `${alunoNum}. ${aluno.nome}`, bimestres: [[null, null, null], [null, null, null], [null, null, null], [null, null, null]] };
+                        if (!notas.some(n => n.aluno === `${alunoNum}. ${aluno.nome}`)) notas.push(alunoNotas);
+                        if (rpInput) {
+                            const rpValue = rpInput.value ? Diario.funcoes.arredondarNota(rpInput.value) : null;
+                            alunoNotas.bimestres[3][2] = rpValue;
+                            rpInput.value = rpValue !== null ? rpValue : '';
+                            const mediaN1N2 = Diario.funcoes.calcularMediaBimestral([alunoNotas.bimestres[3][0], alunoNotas.bimestres[3][1]]);
+                            if (mediaN1N2 >= 7) rpInput.disabled = true;
+                            const media4 = Diario.funcoes.calcularMediaBimestral(alunoNotas.bimestres[3]);
+                            const media4Display = media4 === '-' ? '-' : media4.toFixed(1);
+                            const color4 = media4 === '-' ? 'black' : media4 >= 7 ? '#00008B' : 'red';
+                            const mediaSpan = rpInput.closest('tr').querySelector('.media-display');
+                            if (mediaSpan) {
+                                mediaSpan.style.color = color4;
+                                mediaSpan.textContent = media4Display;
+                            }
+                        }
+                        if (recInput) {
+                            const recValue = recInput.value ? Diario.funcoes.arredondarNota(recInput.value) : null;
+                            if (recValue !== null) recuperacao.push({ aluno: `${alunoNum}. ${aluno.nome}`, nota: recValue });
+                            recInput.value = recValue !== null ? recValue : '';
+                        }
+                    });
+                    Diario.dados.combinacoes[Diario.dados.combinacaoAtual].notas = notas;
+                    Diario.dados.combinacoes[Diario.dados.combinacaoAtual].recuperacao = recuperacao;
+                    salvarDados(Diario.dados).then(() => {
+                        Diario.funcoes.mostrarNotificacao("Recuperação salva com sucesso!");
+                    });
+                },
+
+                hasUnsavedChanges() {
+                    if (document.getElementById("config-inicial").style.display === "block") {
+                        const escola = Diario.dados.escola || {};
+                        const inputs = {
+                            nomeEscola: document.getElementById("nome-escola").value.trim(),
+                            curso: document.getElementById("curso").value.trim(),
+                            anoLetivo: document.getElementById("ano-letivo").value.trim(),
+                            professor: document.getElementById("nome-professor").value.trim()
+                        };
+                        return Object.keys(inputs).some(key => inputs[key] !== (escola[key] || ''));
+                    }
+
+                    if (document.getElementById("tela-disciplinas").style.display === "block") {
+                        return document.getElementById("nova-disciplina").value.trim() !== '';
+                    }
+
+                    if (document.getElementById("tela-turmas-independentes").style.display === "block") {
+                        return document.getElementById("nova-turma-independente").value.trim() !== '';
+                    }
+
+                    if (document.getElementById("tela-alunos").style.display === "block") {
+                        return document.getElementById("novo-aluno").value.trim() !== '';
+                    }
+
+                    if (document.getElementById("tela-frequencia").style.display === "block") {
+                        const data = document.getElementById("frequencia-data").value;
+                        if (!data) return false;
+                        const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual?.split(" - ")[1]);
+                        if (!turma) return false;
+                        const current = turma.alunos.map(a => document.querySelector(`input[name="frequencia-${a.numero}"]:checked`)?.value || 'P');
+                        const existing = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.frequencia.find(f => f.data === data);
+                        const saved = existing ? turma.alunos.map(a => existing.registros.find(r => r.aluno === `${a.numero}. ${a.nome}`)?.tipo || 'P') : Array(turma.alunos.length).fill('P');
+                        return JSON.stringify(current) !== JSON.stringify(saved);
+                    }
+
+                    if (document.getElementById("tela-atividades").style.display === "block") {
+                        const data = document.getElementById("atividades-data").value;
+                        if (!data) return false;
+                        const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual?.split(" - ")[1]);
+                        if (!turma) return false;
+                        const current = Array.from(document.querySelectorAll('#atividades-lista input[type="radio"]:checked')).map(r => r.value);
+                        const saved = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.atividades.find(a => a.data === data)?.registros.map(r => r.tipo) || Array(turma.alunos.length).fill('C');
+                        return JSON.stringify(current) !== JSON.stringify(saved);
+                    }
+
+                    if (document.getElementById("tela-notas").style.display === "block") {
+                        const turma = Diario.dados.turmasIndependentes.find(t => t.nome === Diario.dados.combinacaoAtual?.split(" - ")[1]);
+                        if (!turma) return false;
+                        const notasSalvas = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.notas || [];
+                        const current = Array.from(document.querySelectorAll('#tela-notas input[type="number"]')).map(i => i.value ? parseFloat(i.value) : null);
+                        const saved = notasSalvas.length ? notasSalvas.flatMap(n => n.bimestres.flat()) : Array(turma.alunos.length * 12).fill(null);
+                        return JSON.stringify(current) !== JSON.stringify(saved.map(v => v !== null ? v : null)) && !this.notasSalvas;
+                    }
+
+                    if (document.getElementById("tela-conteudo").style.display === "block") {
+                        const data = document.getElementById("conteudo-data").value;
+                        const texto = document.getElementById("conteudo-texto").value.trim();
+                        if (!data || !texto) return false;
+                        const existing = Diario.dados.combinacoes[Diario.dados.combinacaoAtual]?.conteudo.find(c => c.data === data);
+                        return texto !== (existing?.texto || '');
+                    }
+
+                    return false;
+                },
+
+                voltarGerenciarAulas() {
+                    if (this.hasUnsavedChanges() && !confirm("Sair sem salvar as alterações?")) return;
+                    this.notasSalvas = false;
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-gerenciar-aulas").style.display = "block";
+                    this.carregarDisciplinasGerenciamento();
+                    this.carregarCombinacoes();
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                voltarCombinacao() {
+                    if (this.hasUnsavedChanges() && !confirm("Sair sem salvar as alterações?")) return;
+                    this.notasSalvas = false;
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("tela-combinacao").style.display = "block";
+                    this.mostrarResumo('frequencia');
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                voltarCapa() {
+                    if (this.hasUnsavedChanges() && !confirm("Sair sem salvar as alterações?")) return;
+                    this.notasSalvas = false;
+                    Diario.funcoes.esconderTelas();
+                    document.getElementById("capa").style.display = "flex";
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                voltarTurmas() {
+                    if (this.hasUnsavedChanges() && !confirm("Sair sem salvar as alterações?")) return;
+                    this.notasSalvas = false;
+                    document.getElementById("tela-alunos").style.display = "none";
+                    document.getElementById("tela-turmas-independentes").style.display = "block";
+                    this.carregarTurmasIndependentes();
+                    if (window.innerWidth <= 768) document.getElementById('sidebar').classList.remove('active');
+                },
+
+                exportarDados() {
+                    const dados = {
+                        escola: Diario.dados.escola,
+                        disciplinas: Diario.dados.disciplinas,
+                        turmasIndependentes: Diario.dados.turmasIndependentes,
+                        combinacoes: Diario.dados.combinacoes,
+                        tema: Diario.dados.tema
+                    };
+                    const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'diario_de_classe_backup.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                },
+
+                importarDados(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = async e => {
+                            Object.assign(Diario.dados, JSON.parse(e.target.result));
+                            await salvarDados(Diario.dados);
+                            aplicarTema(Diario.dados.tema || 'padrao');
+                            Diario.funcoes.mostrarNotificacao("Dados importados com sucesso!");
+                            this.carregarCapa();
+                        };
+                        reader.readAsText(file);
+                    }
+                },
+
+                abrirImportacao() {
+                    document.getElementById('importar-dados').click();
+                },
+
+                abrirModalExportacao() {
+                    document.getElementById('modal-export').style.display = 'block';
+                },
+
+                gerarPDFModal() {
+                    const selecionados = Array.from(document.querySelectorAll('#modal-export input:checked')).map(cb => cb.value);
+                    if (selecionados.length === 0) {
+                        Diario.funcoes.mostrarNotificacao("Selecione pelo menos uma opção!", "erro");
+                        return;
+                    }
+                    if (selecionados.includes('todos')) {
+                        Diario.telas.gerarPDFResumos('todos');
+                    } else {
+                        selecionados.forEach(tipo => {
+                            if (tipo === 'geral') {
+                                Diario.telas.gerarPDFGeral();
+                            } else {
+                                Diario.telas.gerarPDFResumos(tipo);
+                            }
+                        });
+                    }
+                    document.getElementById('modal-export').style.display = 'none';
+                    Diario.funcoes.mostrarNotificacao("PDF(s) gerado(s) com sucesso!");
+                },
+
+                gerarPDFGeral() {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const escola = Diario.dados.escola;
+                    let startY = 40;
+
+                    doc.setFontSize(16);
+                    doc.text(escola.nomeEscola.toUpperCase(), 10, 10);
+                    doc.setFontSize(12);
+                    doc.text(`Curso: ${escola.curso} | Ano: ${escola.anoLetivo} | Professor(a): ${escola.professor}`, 10, 20);
+                    doc.setFontSize(14);
+                    doc.text("Resumo Geral", 10, 30);
+                    doc.setLineWidth(0.5);
+                    doc.line(10, 32, 200, 32);
+
+                    const addSection = (title, content) => {
+                        if (startY > 260) {
+                            doc.addPage();
+                            startY = 10;
+                        }
+                        doc.setFontSize(14);
+                        doc.text(title, 10, startY);
+                        startY += 5;
+                        doc.setFontSize(10);
+                        doc.text(content, 10, startY, { maxWidth: 180 });
+                        startY += 10 + (content.split('\n').length * 5);
+                    };
+
+                    const disciplinas = Diario.dados.disciplinas.map(d => d.nome).join(', ');
+                    const turmas = Diario.dados.turmasIndependentes.map(t => t.nome).join(', ');
+                    const combinacoes = Object.keys(Diario.dados.combinacoes).join(', ');
+
+                    addSection("Disciplinas", disciplinas || "Nenhuma disciplina cadastrada");
+                    addSection("Turmas Independentes", turmas || "Nenhuma turma cadastrada");
+                    addSection("Combinações", combinacoes || "Nenhuma combinação cadastrada");
+
+                    doc.save(`${escola.nomeEscola}_Resumo_Geral.pdf`);
+                },
+
+                gerarPDFResumos(tipo = 'todos') {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    const combinacao = Diario.dados.combinacaoAtual;
+                    const escola = Diario.dados.escola;
+                    if (!combinacao) {
+                        Diario.funcoes.mostrarNotificacao("Selecione uma combinação antes de exportar!", "erro");
+                        return;
+                    }
+                    const turma = Diario.dados.turmasIndependentes.find(t => t.nome === combinacao.split(" - ")[1]);
+                    let startY = 40;
+
+                    doc.setFontSize(16);
+                    doc.text(escola.nomeEscola.toUpperCase(), 10, 10);
+                    doc.setFontSize(12);
+                    doc.text(`Curso: ${escola.curso} | Ano: ${escola.anoLetivo} | Professor(a): ${escola.professor}`, 10, 20);
+                    doc.setFontSize(14);
+                    doc.text(combinacao, 10, 30);
+                    doc.setLineWidth(0.5);
+                    doc.line(10, 32, 200, 32);
+
+                    const addAba = (nomeAba, construirLista) => {
+                        if (startY > 260) {
+                            doc.addPage();
+                            startY = 10;
+                        }
+                        doc.setFontSize(14);
+                        doc.text(`${nomeAba}`, 10, startY);
+                        startY += 5;
+                        const tableHTML = construirLista(turma);
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = tableHTML;
+                        const table = tempDiv.querySelector('table');
+                        if (table) {
+                            const headers = Array.from(table.querySelectorAll('thead tr th')).map(th => th.textContent);
+                            const data = Array.from(table.querySelectorAll('tbody tr')).map(tr =>
+                                Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
+                            );
+                            doc.autoTable({
+                                head: [headers],
+                                body: data,
+                                startY: startY,
+                                styles: { fontSize: 8, cellPadding: 2, lineWidth: 0.1, lineColor: [139, 69, 19] },
+                                columnStyles: { 0: { cellWidth: 40 } },
+                                didParseCell: function (data) {
+                                    if (data.section === 'body') {
+                                        if (nomeAba === 'Notas' && [1, 2, 3, 4].includes(data.column.index)) {
+                                            const media = parseFloat(data.cell.text[0]);
+                                            if (!isNaN(media)) {
+                                                data.cell.styles.textColor = media >= 7 ? [0, 0, 139] : [255, 0, 0];
+                                            }
+                                        }
+                                        if (nomeAba === 'Resultados' && data.column.index === 3) {
+                                            data.cell.text[0] = data.cell.text[0].replace('✔️', 'Aprovado').replace('✖️', 'Reprovado');
+                                            if (data.cell.text[0] === 'Aprovado') data.cell.styles.textColor = [0, 128, 0];
+                                            if (data.cell.text[0] === 'Reprovado') data.cell.styles.textColor = [255, 0, 0];
+                                        }
+                                    }
+                                }
+                            });
+                            startY = doc.lastAutoTable.finalY + 10;
+                        }
+                        tempDiv.remove();
+                    };
+
+                    const abas = [
+                        { nome: 'Frequência', fn: this.construirListaFrequencia },
+                        { nome: 'Conteúdo', fn: this.construirListaConteudo },
+                        { nome: 'Notas', fn: this.construirListaNotas },
+                        { nome: 'Atividades', fn: this.construirListaAtividades },
+                        { nome: 'Resultados', fn: this.construirListaResultados }
+                    ];
+
+                    if (tipo === 'todos') {
+                        abas.forEach(aba => addAba(aba.nome, aba.fn));
+                        doc.save(`${combinacao}_Resumos_Completo.pdf`);
+                    } else {
+                        const aba = abas.find(a => a.nome.toLowerCase() === tipo);
+                        if (aba) {
+                            addAba(aba.nome, aba.fn);
+                            doc.save(`${combinacao}_Resumos_${tipo}.pdf`);
+                        }
+                    }
+                }
+            }
+        };
+
+        async function inicializarApp() {
+            console.log("Iniciando app...");
+            Diario.dados = await carregarDados();
+            if (!Diario.dados.tema) {
+                Diario.dados.tema = 'padrao';
+                await salvarDados(Diario.dados); // Garante que o tema padrão seja salvo
+            }
+            await configurarApp();
+            aplicarTema(Diario.dados.tema); // Aplica o tema após tudo pronto
+        }
+
+        async function configurarApp() {
+            console.log("Configurando app...");
+            const menuToggle = document.getElementById('menu-toggle');
+            const sidebar = document.getElementById('sidebar');
+            if (menuToggle && sidebar) {
+                menuToggle.addEventListener('click', () => sidebar.classList.toggle('active'));
+            }
+
+            document.querySelectorAll('.sidebar button').forEach(btn => {
+                btn.addEventListener('click', () => btn.blur());
+            });
+
+            const seletorTema = document.getElementById('seletor-tema');
+            if (seletorTema) {
+                seletorTema.innerHTML = Object.entries(temasIcones)
+                    .map(([valor, icone]) => `<option value="${valor}">${icone} ${valor.charAt(0).toUpperCase() + valor.slice(1).replace('-', ' ')}</option>`)
+                    .join('');
+                seletorTema.value = Diario.dados.tema; // Define o valor inicial
+                seletorTema.onchange = () => {
+                    const novoTema = seletorTema.value;
+                    aplicarTema(novoTema);
+                };
+            }
+
+            const toggleAcoes = document.getElementById('toggle-acoes');
+            const menuAcoes = document.getElementById('menu-acoes');
+            if (toggleAcoes && menuAcoes) {
+                toggleAcoes.addEventListener('click', () => menuAcoes.classList.toggle('active'));
+                document.querySelectorAll('#menu-acoes button').forEach(btn => {
+                    btn.addEventListener('click', () => menuAcoes.classList.remove('active'));
+                });
+            }
+
+            Diario.funcoes.esconderTelas();
+            if (!Diario.dados.escola) {
+                document.getElementById("config-inicial").style.display = "block";
+            } else {
+                Diario.telas.carregarCapa();
+            }
+        }        
+
+        function aplicarTema(tema) {
+            console.log("Aplicando tema:", tema);
+            document.body.className = '';
+            document.body.classList.add('theme-' + tema);
+            Diario.dados.tema = tema;
+            salvarDados(Diario.dados).then(() => console.log("Tema salvo:", tema));
+
+            const seletorTema = document.getElementById('seletor-tema');
+            if (seletorTema) seletorTema.value = tema;
+
+            document.querySelectorAll('.app-bar, .sidebar, .content > div, .card, button.btn, table, input, select, textarea, #capa, #resumo-conteudo, #combinacao-header').forEach(el => {
+                el.style.backgroundColor = '';
+                el.style.color = '';
+                el.style.borderColor = '';
+            });
+        }
+
+        const temasIcones = {
+            'padrao': '📘',
+            'escuro': '☾',
+            'azul-suave': '🌊',
+            'verde-natural': '🌿',
+            'roxo-moderno': '🌀',
+            'laranja-vibrante': '🔥',
+            'cinza-elegante': '🖋️',
+            'rosa-delicado': '🌸',
+            'amarelo-sol': '☀'
+        };
+
+        const seletorTema = document.getElementById('seletor-tema');
+        if (seletorTema) {
+            seletorTema.innerHTML = Object.entries(temasIcones)
+                .map(([valor, icone]) => `<option value="${valor}">${icone} ${valor.charAt(0).toUpperCase() + valor.slice(1).replace('-', ' ')}</option>`)
+                .join('');
+        }
+
+        setInterval(async () => {
+            const estadoAtual = JSON.stringify({
+                escola: Diario.dados.escola,
+                disciplinas: Diario.dados.disciplinas,
+                turmasIndependentes: Diario.dados.turmasIndependentes,
+                combinacoes: Diario.dados.combinacoes,
+                tema: Diario.dados.tema
+            });
+            if (Diario.dados.ultimoEstado !== estadoAtual) {
+                await salvarDados(Diario.dados);
+                Diario.dados.ultimoEstado = estadoAtual;
+                Diario.funcoes.mostrarNotificacao("Autosave concluído!");
+            }
+        }, 180000); // 3 minutos
+    </script>
+
+</body>
+
+</html>
