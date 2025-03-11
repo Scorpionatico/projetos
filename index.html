@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diário de Classe</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="header">
+        <button id="menu-btn">☰</button>
+        <h1 class="app-title">Diário de Classe Digital</h1>
+    </div>
+    <div class="sidebar" id="sidebar">
+        <button onclick="Diario.telas.carregarCapa()">🏠<span class="tooltip">Capa</span></button>
+        <button onclick="Diario.telas.mostrarDisciplinas()">📚<span class="tooltip">Disciplinas</span></button>
+        <button onclick="Diario.telas.mostrarTurmasIndependentes()">👥<span class="tooltip">Turmas</span></button>
+        <button onclick="Diario.telas.mostrarGerenciarAulas()">📅<span class="tooltip">Gerenciar Aulas</span></button>
+    </div>
+    <div class="content">
+        <div id="config-inicial">
+            <h2>Configuração Inicial</h2>
+            <label class="label">Nome da Escola:</label><input id="nome-escola">
+            <label class="label">Curso:</label><input id="curso">
+            <label class="label">Ano Letivo:</label><input id="ano-letivo">
+            <label class="label">Professor(a):</label><input id="nome-professor">
+            <button onclick="Diario.telas.salvarConfigInicial()">Salvar</button>
+        </div>
+        <div id="capa">
+            <h1 id="capa-titulo"></h1>
+            <div class="label">Curso:</div>
+            <p id="capa-curso"></p>
+            <div class="label">Ano Letivo:</div>
+            <p id="capa-ano"></p>
+            <div class="label">Professor(a):</div>
+            <p id="capa-professor"></p>
+            <div class="capa-botoes">
+                <button onclick="Diario.telas.editarConfig()">✏️ Editar</button>
+                <button onclick="Diario.telas.exportarDados()">📤 Exportar Dados</button>
+                <button onclick="Diario.telas.abrirImportacao()">📥 Importar Dados</button>
+                <input type="file" id="importar-dados" accept=".json" onchange="Diario.telas.importarDados(event)" style="display: none;">
+            </div>
+            <footer class="capa-footer">
+                Desenvolvido por Grok (xAI)<br>
+                Co-desenvolvido por<br>
+                Leandro Ferreira de Souza
+            </footer>
+        </div>
+        <div id="tela-disciplinas">
+            <h2>Disciplinas</h2>
+            <input id="nova-disciplina" placeholder="Nova disciplina"><button onclick="Diario.telas.adicionarDisciplina()">Adicionar</button>
+            <button onclick="Diario.telas.voltarCapa()" style="float: right;">Voltar</button>
+            <div id="lista-disciplinas"></div>
+        </div>
+        <div id="tela-turmas-independentes">
+            <h2>Turmas Independentes</h2>
+            <input id="nova-turma-independente" placeholder="Nova turma"><button onclick="Diario.telas.adicionarTurmaIndependente()">Adicionar</button>
+            <button onclick="Diario.telas.voltarCapa()" style="float: right;">Voltar</button>
+            <div id="lista-turmas-independentes"></div>
+        </div>
+        <div id="tela-alunos">
+            <h2 id="nome-turma"></h2>
+            <input id="novo-aluno" placeholder="Novo aluno"><button id="add-aluno-btn" onclick="Diario.telas.adicionarAluno()">Adicionar</button>
+            <button onclick="Diario.telas.voltarTurmas()" style="float: right;">Voltar</button>
+            <div id="lista-alunos"></div>
+        </div>
+        <div id="tela-gerenciar-aulas">
+            <h2>Gerenciar Aulas</h2>
+            <select id="disciplina-selecionada"></select>
+            <select id="turma-selecionada"></select>
+            <button onclick="Diario.telas.adicionarCombinacao()">Adicionar Combinação</button>
+            <button onclick="Diario.telas.voltarCapa()" style="float: right;">Voltar</button>
+            <div id="gerenciamento-conteudo"></div>
+        </div>
+        <div id="tela-combinacao">
+            <div id="combinacao-header">
+                <h2 id="combinacao-titulo"></h2>
+                <button class="aba" onclick="Diario.telas.mostrarResumo('frequencia')">Frequência</button>
+                <button class="aba" onclick="Diario.telas.mostrarResumo('notas')">Notas</button>
+                <button class="aba" onclick="Diario.telas.mostrarResumo('conteudo')">Conteúdo</button>
+                <button class="aba" onclick="Diario.telas.mostrarResumo('atividades')">Atividades</button>
+                <button class="aba" onclick="Diario.telas.mostrarResumo('resultados')">Resultados</button>
+            </div>
+            <div id="combinacao-main">
+                <div id="combinacao-resumos">
+                    <div id="resumo-conteudo"></div>
+                </div>
+                <div id="combinacao-acoes">
+                    <button onclick="Diario.telas.mostrarTelaFrequencia()">📝<span class="tooltip">Registrar Frequência</span></button>
+                    <button onclick="Diario.telas.mostrarTelaNotas()">⭐<span class="tooltip">Registrar Notas</span></button>
+                    <button onclick="Diario.telas.mostrarTelaConteudo()">📖<span class="tooltip">Registrar Conteúdo</span></button>
+                    <button onclick="Diario.telas.mostrarTelaAtividades()">✅<span class="tooltip">Registrar Atividades</span></button>
+                    <button onclick="Diario.telas.mostrarConfigBimestres()">⚙️<span class="tooltip">Configurar Bimestres</span></button>
+                    <button onclick="Diario.telas.mostrarRecuperacaoConjugada()">📈<span class="tooltip">Recuperação Conjugada</span></button>
+                    <button onclick="Diario.telas.mostrarRecuperacaoExclusiva()">📊<span class="tooltip">Recuperação Exclusiva</span></button>
+                    <button onclick="Diario.telas.voltarGerenciarAulas()">⬅️<span class="tooltip">Voltar</span></button>
+                </div>
+            </div>
+        </div>
+        <div id="tela-frequencia">
+            <h2 id="frequencia-titulo"></h2>
+            <input type="date" id="frequencia-data">
+            <button onclick="Diario.telas.registrarFrequencia()">Registrar</button>
+            <select id="frequencia-remover-data"></select>
+            <button onclick="Diario.telas.removerFrequencia()">Remover</button>
+            <button onclick="Diario.telas.voltarCombinacao()" style="float: right;">Voltar</button>
+            <table>
+                <thead>
+                    <tr><th>Aluno</th><th>F</th><th>D</th><th>P</th><th>J</th><th>JD</th></tr>
+                </thead>
+                <tbody id="frequencia-lista"></tbody>
+            </table>
+        </div>
+        <div id="tela-notas">
+            <h2 id="notas-titulo"></h2>
+            <button onclick="Diario.telas.salvarNotas()">Salvar</button>
+            <button onclick="Diario.telas.voltarCombinacao()" style="float: right;">Voltar</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th rowspan="2">Aluno</th>
+                        <th colspan="4">1º Bimestre</th>
+                        <th colspan="4">2º Bimestre</th>
+                        <th colspan="4">3º Bimestre</th>
+                        <th colspan="4">4º Bimestre</th>
+                    </tr>
+                    <tr>
+                        <th>M</th><th>B</th><th>R</th><th>Média</th>
+                        <th>M</th><th>B</th><th>R</th><th>Média</th>
+                        <th>M</th><th>B</th><th>R</th><th>Média</th>
+                        <th>M</th><th>B</th><th>R</th><th>Média</th>
+                    </tr>
+                </thead>
+                <tbody id="notas-lista"></tbody>
+            </table>
+        </div>
+        <div id="tela-conteudo">
+            <h2 id="conteudo-titulo"></h2>
+            <input type="date" id="conteudo-data">
+            <textarea id="conteudo-texto" placeholder="Descreva o conteúdo ministrado"></textarea>
+            <button onclick="Diario.telas.registrarConteudo()">Registrar</button>
+            <select id="conteudo-editar-data" onchange="Diario.telas.carregarConteudoParaEdicao()"></select>
+            <button onclick="Diario.telas.editarConteudo()">Editar</button>
+            <button onclick="Diario.telas.removerConteudo()">Remover</button>
+            <button onclick="Diario.telas.voltarCombinacao()" style="float: right;">Voltar</button>
+        </div>
+        <div id="tela-config-bimestres">
+            <h2 id="combinacao-config-nome"></h2>
+            <label class="label">1º Bimestre</label><input type="date" id="bimestre1-inicio"><input type="date" id="bimestre1-fim">
+            <label class="label">2º Bimestre</label><input type="date" id="bimestre2-inicio"><input type="date" id="bimestre2-fim">
+            <label class="label">3º Bimestre</label><input type="date" id="bimestre3-inicio"><input type="date" id="bimestre3-fim">
+            <label class="label">4º Bimestre</label><input type="date" id="bimestre4-inicio"><input type="date" id="bimestre4-fim">
+            <button onclick="Diario.telas.configurarBimestres()">Salvar</button>
+            <button onclick="Diario.telas.voltarCombinacao()" style="float: right;">Voltar</button>
+        </div>
+        <div id="tela-atividades">
+            <h2 id="atividades-titulo"></h2>
+            <input type="date" id="atividades-data">
+            <button onclick="Diario.telas.registrarAtividade()">Registrar</button>
+            <select id="atividades-editar-data" onchange="Diario.telas.editarAtividade()"></select>
+            <button onclick="Diario.telas.removerAtividade()">Remover</button>
+            <button onclick="Diario.telas.voltarCombinacao()" style="float: right;">Voltar</button>
+            <table>
+                <thead>
+                    <tr><th>Aluno</th><th>C</th><th>I</th><th>N</th></tr>
+                </thead>
+                <tbody id="atividades-lista"></tbody>
+            </table>
+        </div>
+        <div id="tela-recuperacao">
+            <h2 id="recuperacao-titulo"></h2>
+            <div id="recuperacao-opcoes">
+                <button onclick="Diario.telas.mostrarRecuperacaoConjugada()">Recuperação Conjugada</button>
+                <button onclick="Diario.telas.mostrarRecuperacaoExclusiva()">Recuperação Exclusiva</button>
+            </div>
+            <button id="btn-salvar-recuperacao" onclick="Diario.telas.salvarRecuperacao()" style="display: none;">Salvar</button>
+            <button onclick="Diario.telas.voltarCombinacao()" style="float: right;">Voltar</button>
+            <div id="recuperacao-conteudo"></div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
